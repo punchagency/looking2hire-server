@@ -15,6 +15,4 @@ export const env = {
 
   frontendUrl: process.env.FRONTEND_URL || "http://localhost:3000",
   authRedirectUri: process.env.AUTH_REDIRECT_URI!,
-  linkedinTokenEndpoint: process.env.LINKEDIN_TOKEN_ENDPOINT!,
-  linkedinUserInfoEndpoint: process.env.LINKEDIN_USER_INFO_ENDPOINT!,
 };

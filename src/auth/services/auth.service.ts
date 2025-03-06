@@ -11,8 +11,8 @@ export class AuthService {
   private clientId = env.linkedinClientId;
   private clientSecret = env.linkedinClientSecret;
   private redirectUri = `${env.frontendUrl}/${env.authRedirectUri}linkedin`;
-  private tokenEndpoint = env.linkedinTokenEndpoint;
-  private userInfoEndpoint = env.linkedinUserInfoEndpoint;
+  private tokenEndpoint = "https://www.linkedin.com/oauth/v2/accessToken";
+  private userInfoEndpoint = "https://api.linkedin.com/v2/userinfo";
 
   async findUserByEmail(email: string) {
     try {
