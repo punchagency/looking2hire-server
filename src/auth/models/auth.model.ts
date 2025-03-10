@@ -1,7 +1,6 @@
 import { getModelForClass } from "@typegoose/typegoose";
-// import { AuthCode, User } from "./auth.schema";
-import { Employer, OTP } from "./employer.schema";
-import { Applicant, AuthCode } from "./applicant.schema";
+import { Employer, OTP } from "./employer.auth.schema";
+import { Applicant, AuthCode } from "./applicant.auth.schema";
 
 export const AuthCodeModel = getModelForClass(AuthCode, {
   schemaOptions: { timestamps: true },

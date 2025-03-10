@@ -10,7 +10,7 @@ import {
   EmployerSignupDto,
   SendOTPDto,
   VerifyOtpDto,
-} from "../dtos/employer.dto";
+} from "../dtos/employer.auth.dto";
 
 @Service()
 export class AuthController {
@@ -43,52 +43,6 @@ export class AuthController {
   linkedinAuth(req: Request, res: Response, next: NextFunction) {
     passport.authenticate("linkedin")(req, res, next);
   }
-
-  // linkedinAuthCallback(req: Request, res: Response, next: NextFunction): void {
-  //   passport.authenticate(
-  //     "linkedin",
-  //     { session: false, failureRedirect: "/" },
-  //     async (err: Error | null, result: { authCode: string } | null) => {
-  //       try {
-  //         console.log("rannnnn");
-  //         const { code } = req.query;
-  //         // console.log("code", code);
-  //         const tokenResponse = await axios.post(
-  //           "https://www.linkedin.com/oauth/v2/accessToken",
-  //           null,
-  //           {
-  //             params: {
-  //               grant_type: "authorization_code",
-  //               code,
-  //               redirect_uri: "http://localhost:3000/upload",
-  //               client_id: "773yr5avmlgupy",
-  //               client_secret: "WPL_AP1.VJyRwyJLSpAUww4Z.k3fvdw==",
-  //             },
-  //             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-  //           }
-  //         );
-  //         // console.log("Token Response:", tokenResponse.data);
-
-  //         const accessToken = tokenResponse.data.access_token;
-
-  //         const userInfoResponse = await axios.get(
-  //           "https://api.linkedin.com/v2/userinfo",
-  //           {
-  //             headers: { Authorization: `Bearer ${accessToken}` },
-  //           }
-  //         );
-
-  //         console.log("userInfoResponse", userInfoResponse.data);
-  //         res.json(userInfoResponse.data);
-  //       } catch (error) {
-  //         console.error("LinkedIn Authentication Error:", error);
-  //         res
-  //           .status(500)
-  //           .json({ error: "Failed to authenticate with LinkedIn" });
-  //       }
-  //     }
-  //   )(req, res, next);
-  // }
 
   async exchangeAuthCode(
     req: Request,
@@ -230,8 +184,8 @@ export class AuthController {
     try {
       const data = Object.assign(new VerifyOtpDto(), req.body);
       await validateOrReject(data);
-      const user = await this.authService.verifyOTP(data);
-      res.status(201).json({ success: true, user });
+      const response = await this.authService.verifyOTP(data);
+      res.status(201).json({ success: true, response });
     } catch (error: any) {
       next(new ApiError(error, 400));
     }

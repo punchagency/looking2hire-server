@@ -9,16 +9,17 @@ import {
 } from "../models/auth.model";
 import { randomBytes } from "crypto";
 import axios from "axios";
-import { ApplicantDto } from "../dtos/applicant.dto";
+import { ApplicantDto } from "../dtos/applicant.auth.dto";
 import {
   EmployerSignupDto,
   EmployerSigninDto,
   SendOTPDto,
   VerifyOtpDto,
-} from "../dtos/employer.dto";
+} from "../dtos/employer.auth.dto";
 import mongoose from "mongoose";
 import { sendOTPEmail } from "../../common/utils/nodemailer.util";
 import { generateOTP } from "../../common/utils/otp.util";
+
 @Service()
 export class AuthService {
   private clientId = env.linkedinClientId;

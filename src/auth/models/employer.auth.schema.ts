@@ -1,5 +1,5 @@
 import { index, prop, Ref, pre } from "@typegoose/typegoose";
-import { Applicant } from "./applicant.schema";
+import { Applicant } from "./applicant.auth.schema";
 import bcrypt from "bcryptjs";
 
 @pre<Employer>("save", async function (next) {
@@ -42,49 +42,6 @@ export class Employer {
   comparePassword(password: string): Promise<boolean> {
     return bcrypt.compare(password, this.password ?? "");
   }
-}
-
-export class JobPost {
-  @prop({ required: true, ref: () => Employer })
-  employer_id: Ref<Employer>;
-
-  @prop({ required: true })
-  job_title: string;
-
-  @prop({ required: true })
-  location: string;
-
-  @prop({ required: true, type: () => [String] })
-  qualifications: string[];
-
-  @prop({ required: true })
-  job_description: string;
-
-  @prop({ required: false })
-  job_address?: string;
-
-  @prop({ default: Date.now })
-  created_at?: Date;
-
-  @prop({ default: Date.now })
-  updated_at?: Date;
-}
-
-export class Application {
-  @prop({ required: true, ref: () => JobPost })
-  job_id: Ref<JobPost>;
-
-  @prop({ required: true, ref: () => Applicant })
-  applicant_id: Ref<Applicant>;
-
-  @prop({ default: Date.now })
-  applied_at?: Date;
-
-  @prop({
-    required: true,
-    enum: ["Pending", "Reviewed", "Interview", "Hired", "Rejected"],
-  })
-  status: string;
 }
 
 @index({ expiresAt: 1 }, { expireAfterSeconds: 0 })

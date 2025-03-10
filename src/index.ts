@@ -10,8 +10,7 @@ import "./config/passport/google.strategy";
 import "./config/passport/linkedin.strategy";
 import passport from "passport";
 import { errorMiddleware } from "./common/middlewares/error.middleware";
-
-// Initialize Passport Middleware
+import jobRouter from "./job/routes/job.routes";
 
 dotenv.config();
 
@@ -27,6 +26,7 @@ app.use(express.json());
 connectDB();
 
 app.use("/api/auth", authRouter);
+app.use("/api/job", jobRouter);
 
 app.use(errorMiddleware);
 
