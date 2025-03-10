@@ -17,16 +17,33 @@ authRouter.get("/linkedin", authController.linkedinAuth.bind(authController));
 //   authController.linkedinAuthCallback.bind(authController)
 // );
 
-authRouter.post(
-  "/refresh-token",
-  authController.refreshToken.bind(authController)
-);
-authRouter.post("/logout", authController.logout.bind(authController));
 authRouter.post("/token", authController.exchangeAuthCode.bind(authController));
 authRouter.post(
   "/linkedin/callback",
   authController.handleLinkedinAuth.bind(authController)
 );
-authRouter.get("/", authController.getAllUsers.bind(authController));
+authRouter.post("/logout", authController.logout.bind(authController));
+authRouter.post(
+  "/refresh-token",
+  authController.refreshToken.bind(authController)
+);
+authRouter.get("/", authController.getAllApplicants.bind(authController));
+
+authRouter.post(
+  "/employer/signup",
+  authController.employerSignup.bind(authController)
+);
+authRouter.post(
+  "/employer/signin",
+  authController.employerSignin.bind(authController)
+);
+authRouter.post(
+  "/employer/verify-otp",
+  authController.verifyOTP.bind(authController)
+);
+authRouter.post(
+  "/employer/send-otp",
+  authController.sendOTP.bind(authController)
+);
 
 export default authRouter;

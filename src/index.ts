@@ -9,6 +9,7 @@ import cookieParser from "cookie-parser";
 import "./config/passport/google.strategy";
 import "./config/passport/linkedin.strategy";
 import passport from "passport";
+import { errorMiddleware } from "./common/middlewares/error.middleware";
 
 // Initialize Passport Middleware
 
@@ -26,6 +27,8 @@ app.use(express.json());
 connectDB();
 
 app.use("/api/auth", authRouter);
+
+app.use(errorMiddleware);
 
 const PORT = env.server_port || 8080;
 

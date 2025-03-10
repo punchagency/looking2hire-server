@@ -14,31 +14,32 @@ passport.use(
     },
     async (_req, _accessToken, _refreshToken, profile, done) => {
       try {
-        console.log("goran");
         const authService = Container.get(AuthService);
         const email = profile.emails?.[0]?.value!;
 
-        let user = await authService.findUserByEmail(email);
+        let applicant = await authService.findApplicantByEmail(email);
 
-        if (user) {
+        if (applicant) {
           // Update existing user with Google ID if not already linked
-          if (!user.googleId) {
-            user = await authService.linkGoogleAccount(user.id, profile.id);
+          if (!applicant.googleId) {
+            applicant = await authService.linkGoogleAccount(
+              applicant.id,
+              profile.id
+            );
           }
         } else {
           // Create new user
-          user = await authService.createUser({
+          applicant = await authService.createApplicant({
             googleId: profile.id,
             name: profile.displayName,
             email,
           });
         }
 
-        if (!user) {
-          return done(new Error("Failed to create or find user"), false);
+        if (!applicant) {
+          return done(new Error("Failed to create or find applicant"), false);
         }
-
-        const authCode = await authService.generateAuthCode(user.id);
+        const authCode = await authService.generateAuthCode(applicant.id);
         done(null, { authCode });
       } catch (error) {
         done(error, false);

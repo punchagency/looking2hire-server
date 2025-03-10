@@ -4,8 +4,13 @@ import passport from "passport";
 import { AuthService } from "../services/auth.service";
 import { env } from "../../config/env";
 import { ApiError } from "../../common/middlewares/error.middleware";
-import { randomBytes } from "crypto";
-import axios from "axios";
+import { validateOrReject } from "class-validator";
+import {
+  EmployerSigninDto,
+  EmployerSignupDto,
+  SendOTPDto,
+  VerifyOtpDto,
+} from "../dtos/employer.dto";
 
 @Service()
 export class AuthController {
@@ -99,12 +104,12 @@ export class AuthController {
 
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
-      res.status(200).json({ accessToken });
+      res.status(200).json({ success: true, accessToken });
     } catch (error: any) {
       next(new ApiError(error, 401));
     }
@@ -121,7 +126,7 @@ export class AuthController {
 
       const authCode = await this.authService.handleLinkedinAuth(code);
 
-      res.status(200).json({ authCode });
+      res.status(200).json({ success: true, authCode });
     } catch (error: any) {
       next(new ApiError(error, 401));
     }
@@ -137,7 +142,7 @@ export class AuthController {
       if (!refreshToken) throw new Error("Invalid or expired refresh token");
 
       const newAccessToken = await this.authService.refreshToken(refreshToken);
-      res.status(200).json({ accessToken: newAccessToken });
+      res.status(200).json({ success: true, accessToken: newAccessToken });
     } catch (error: any) {
       next(new ApiError(error, 401));
     }
@@ -150,20 +155,96 @@ export class AuthController {
         secure: true,
         sameSite: "strict",
       });
-      res.json({ message: "Logged out successfully" });
+      res.json({ success: true, message: "Logged out successfully" });
     } catch (error: any) {
       next(new ApiError(error, 400));
     }
   }
 
-  async getAllUsers(
+  // EMPLOYER
+
+  async employerSignup(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
-      const users = await this.authService.getAllUsers();
-      res.status(200).json(users);
+      const data = Object.assign(new EmployerSignupDto(), req.body);
+      await validateOrReject(data);
+      await this.authService.employerSignup(data);
+      res.status(201).json({
+        success: true,
+        message:
+          "OTP sent to your email. Please verify to complete registration.",
+      });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async employerSignin(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const data = Object.assign(new EmployerSigninDto(), req.body);
+      await validateOrReject(data);
+      const signInDetails = await this.authService.employerSignin(data);
+      res.cookie("refreshToken", signInDetails.refreshToken, {
+        httpOnly: true, // Prevent JavaScript access
+        secure: process.env.NODE_ENV === "production", // change to secure: true -> ensures it works only over HTTPS
+        sameSite: "strict", // Prevents CSRF attacks
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+      res.status(200).json({
+        success: true,
+        employer: signInDetails.employer,
+        accessToken: signInDetails.accessToken,
+      });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async sendOTP(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const data = Object.assign(new SendOTPDto(), req.body);
+      await validateOrReject(data);
+      const message = await this.authService.sendOTP(data);
+      res.status(200).json({ success: true, message });
+    } catch (error: any) {
+      next(new ApiError(error, 403));
+    }
+  }
+
+  async verifyOTP(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const data = Object.assign(new VerifyOtpDto(), req.body);
+      await validateOrReject(data);
+      const user = await this.authService.verifyOTP(data);
+      res.status(201).json({ success: true, user });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async getAllApplicants(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const applicants = await this.authService.getAllApplicants();
+      res.status(200).json(applicants);
     } catch (error: any) {
       next(new ApiError(error, 500));
     }
