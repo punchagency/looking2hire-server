@@ -39,6 +39,7 @@ passport.use(
         if (!applicant) {
           return done(new Error("Failed to create or find applicant"), false);
         }
+        console.log({ applicant: applicant.employment_history });
         const authCode = await authService.generateAuthCode(applicant.id);
         done(null, { authCode });
       } catch (error) {

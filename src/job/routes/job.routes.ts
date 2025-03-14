@@ -6,22 +6,76 @@ import { JobController } from "../controllers/job.controller";
 const jobRouter = express.Router();
 const jobController = Container.get(JobController);
 
-jobRouter.post("/", authenticate, jobController.createJob.bind(jobController));
-jobRouter.get("/", authenticate, jobController.getAllJobs.bind(jobController));
+jobRouter.post(
+  "/employer/create",
+  authenticate,
+  jobController.createJob.bind(jobController)
+);
 jobRouter.get(
-  "/:jobId",
+  "/employer/get/all",
+  authenticate,
+  jobController.getAllJobs.bind(jobController)
+);
+jobRouter.get(
+  "/employer/get/:jobId",
   authenticate,
   jobController.getJobById.bind(jobController)
 );
 jobRouter.patch(
-  "/:jobId",
+  "/employer/update/:jobId",
   authenticate,
   jobController.updateJob.bind(jobController)
 );
 jobRouter.delete(
-  "/:jobId",
+  "/employer/delete/:jobId",
   authenticate,
   jobController.deleteJob.bind(jobController)
+);
+jobRouter.post(
+  "/applicant/employment-history",
+  authenticate,
+  jobController.addEmploymentHistory.bind(jobController)
+);
+jobRouter.patch(
+  "/applicant/employment-history/:employmentId",
+  authenticate,
+  jobController.updateEmploymentHistory.bind(jobController)
+);
+jobRouter.delete(
+  "/applicant/employment-history/:employmentId",
+  authenticate,
+  jobController.deleteEmploymentHistory.bind(jobController)
+);
+
+jobRouter.post(
+  "/applicant/map/distance",
+  authenticate,
+  jobController.getJobsByDistance.bind(jobController)
+);
+jobRouter.get(
+  "/applicant/search",
+  authenticate,
+  jobController.searchJobs.bind(jobController)
+);
+jobRouter.get(
+  "/applicant/search/history",
+  authenticate,
+  jobController.getRecentSearches.bind(jobController)
+);
+jobRouter.get(
+  "/applicant/popular",
+  authenticate,
+  jobController.getPopularJobs.bind(jobController)
+);
+jobRouter.post(
+  "/applicant/apply",
+  authenticate,
+  jobController.applyToJob.bind(jobController)
+);
+jobRouter.get(
+  "/applicant/recent",
+  authenticate,
+  jobController.getRecentJobs.bind(jobController)
 );
 
 export default jobRouter;

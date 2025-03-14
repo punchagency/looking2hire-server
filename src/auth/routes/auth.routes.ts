@@ -1,6 +1,7 @@
 import express from "express";
 import { Container } from "typedi";
 import { AuthController } from "../controllers/auth.controller";
+import { authenticate } from "../../common/middlewares/auth.middleware";
 
 const authRouter = express.Router();
 const authController = Container.get(AuthController);
@@ -12,11 +13,6 @@ authRouter.get(
 );
 authRouter.get("/linkedin", authController.linkedinAuth.bind(authController));
 
-// authRouter.get(
-//   "/linkedin/callback",
-//   authController.linkedinAuthCallback.bind(authController)
-// );
-
 authRouter.post("/token", authController.exchangeAuthCode.bind(authController));
 authRouter.post(
   "/linkedin/callback",
@@ -27,7 +23,6 @@ authRouter.post(
   "/refresh-token",
   authController.refreshToken.bind(authController)
 );
-authRouter.get("/", authController.getAllApplicants.bind(authController));
 
 authRouter.post(
   "/employer/signup",
@@ -38,12 +33,25 @@ authRouter.post(
   authController.employerSignin.bind(authController)
 );
 authRouter.post(
-  "/employer/verify-otp",
-  authController.verifyOTP.bind(authController)
+  "/applicant/signup",
+  authController.applicantSignup.bind(authController)
 );
 authRouter.post(
-  "/employer/send-otp",
-  authController.sendOTP.bind(authController)
+  "/applicant/signin",
+  authController.applicantSignin.bind(authController)
 );
+authRouter.post(
+  "/applicant/link-password",
+  authController.linkPassword.bind(authController)
+);
+authRouter.post("/verify-otp", authController.verifyOTP.bind(authController));
+authRouter.post("/send-otp", authController.sendOTP.bind(authController));
+authRouter.post(
+  "/employer/update-profile",
+  authController.updateEmployerProfile.bind(authController)
+);
+
+//
+authRouter.get("/", authController.getAllApplicants.bind(authController));
 
 export default authRouter;

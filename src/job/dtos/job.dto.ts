@@ -1,4 +1,6 @@
-import { IsArray, IsString } from "class-validator";
+import { IsNumber } from "class-validator";
+import { IsString } from "class-validator";
+import { IsArray } from "class-validator";
 import { IsOptional } from "class-validator";
 import { IsDate } from "class-validator";
 import { IsEnum } from "class-validator";
@@ -9,6 +11,12 @@ export class JobPostDto {
 
   @IsString()
   job_address: string;
+
+  @IsString()
+  job_description: string;
+
+  @IsArray()
+  location: [number, number];
 
   @IsArray()
   qualifications: string[];
@@ -22,10 +30,10 @@ export class UpdateJobPostDto {
 
 export class ApplicationDto {
   @IsString()
-  job_id: string; // ObjectId reference
+  jobId: string; // ObjectId reference
 
   @IsString()
-  applicant_id: string; // ObjectId reference
+  applicantId: string; // ObjectId reference
 
   @IsOptional()
   @IsDate()
@@ -33,4 +41,25 @@ export class ApplicationDto {
 
   @IsEnum(["Pending", "Reviewed", "Interview", "Hired", "Rejected"])
   status: string;
+}
+
+export class SearchDto {
+  @IsString()
+  title: string;
+}
+
+export class DistanceFilterDto {
+  @IsNumber()
+  latitude: number;
+
+  @IsNumber()
+  longitude: number;
+
+  @IsNumber()
+  maxDistance: number;
+}
+
+export class ApplyJobDto {
+  @IsString()
+  jobId: string;
 }

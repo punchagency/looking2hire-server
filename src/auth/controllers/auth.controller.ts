@@ -5,12 +5,16 @@ import { AuthService } from "../services/auth.service";
 import { env } from "../../config/env";
 import { ApiError } from "../../common/middlewares/error.middleware";
 import { validateOrReject } from "class-validator";
+import { AuthRequest } from "../../common/middlewares/auth.middleware";
 import {
+  ApplicantSigninDto,
+  ApplicantSignupDto,
   EmployerSigninDto,
   EmployerSignupDto,
   SendOTPDto,
+  UpdateEmployerProfileDto,
   VerifyOtpDto,
-} from "../dtos/employer.auth.dto";
+} from "../dtos/auth.dto";
 
 @Service()
 export class AuthController {
@@ -29,7 +33,7 @@ export class AuthController {
       try {
         if (err) return next(new ApiError(err.message, 500));
         if (!result || !result.authCode)
-          return res.status(401).json({ message: "Authentication failed" });
+          return next(new ApiError(new Error("Authentication failed"), 401));
 
         res.redirect(
           `${env.frontendUrl}/auth-success?provider=google&code=${result.authCode}`
@@ -86,6 +90,8 @@ export class AuthController {
     }
   }
 
+  // common
+
   async refreshToken(
     req: Request,
     res: Response,
@@ -136,6 +142,40 @@ export class AuthController {
     }
   }
 
+  async applicantSignup(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const data = Object.assign(new ApplicantSignupDto(), req.body);
+      await validateOrReject(data);
+      await this.authService.applicantSignup(data);
+      res.status(201).json({
+        success: true,
+        message:
+          "OTP sent to your email. Please verify to complete registration.",
+      });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async linkPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const data = Object.assign(new ApplicantSignupDto(), req.body);
+      await validateOrReject(data);
+      const applicant = await this.authService.linkPassword(data);
+      res.json({ message: "Password linked successfully", applicant });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
   async employerSignin(
     req: Request,
     res: Response,
@@ -154,6 +194,31 @@ export class AuthController {
       res.status(200).json({
         success: true,
         employer: signInDetails.employer,
+        accessToken: signInDetails.accessToken,
+      });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async applicantSignin(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const data = Object.assign(new ApplicantSigninDto(), req.body);
+      await validateOrReject(data);
+      const signInDetails = await this.authService.applicantSignin(data);
+      res.cookie("refreshToken", signInDetails.refreshToken, {
+        httpOnly: true, // Prevent JavaScript access
+        secure: process.env.NODE_ENV === "production", // change to secure: true -> ensures it works only over HTTPS
+        sameSite: "strict", // Prevents CSRF attacks
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+      res.status(200).json({
+        success: true,
+        applicant: signInDetails.applicant,
         accessToken: signInDetails.accessToken,
       });
     } catch (error: any) {
@@ -186,6 +251,24 @@ export class AuthController {
       await validateOrReject(data);
       const response = await this.authService.verifyOTP(data);
       res.status(201).json({ success: true, response });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async updateEmployerProfile(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const data = Object.assign(new UpdateEmployerProfileDto(), req.body);
+      await validateOrReject(data);
+      const employer = await this.authService.updateEmployerProfile(
+        req.user.id,
+        data
+      );
+      res.status(200).json({ success: true, employer });
     } catch (error: any) {
       next(new ApiError(error, 400));
     }

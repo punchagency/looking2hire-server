@@ -2,10 +2,20 @@
 import { Response, NextFunction } from "express";
 import { Service } from "typedi";
 import { JobService } from "../services/job.service";
-import { JobPostDto, UpdateJobPostDto } from "../dtos/employer.job.dto";
 import { validateOrReject } from "class-validator";
 import { ApiError } from "../../common/middlewares/error.middleware";
 import { AuthRequest } from "../../common/middlewares/auth.middleware";
+import {
+  JobPostDto,
+  UpdateJobPostDto,
+  DistanceFilterDto,
+  ApplyJobDto,
+  SearchDto,
+} from "../dtos/job.dto";
+import {
+  EmploymentHistoryDto,
+  UpdateEmploymentHistoryDto,
+} from "../../auth/dtos/auth.dto";
 
 @Service()
 export class JobController {
@@ -80,6 +90,141 @@ export class JobController {
       res
         .status(200)
         .json({ success: true, message: "Job deleted successfully" });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async addEmploymentHistory(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const data = Object.assign(new EmploymentHistoryDto(), req.body);
+      await validateOrReject(data);
+      const updatedApplicant = await this.jobService.addEmploymentHistory(
+        req.user.id,
+        data
+      );
+      res.status(201).json({
+        success: true,
+        data: updatedApplicant,
+      });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async updateEmploymentHistory(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { employmentId } = req.params;
+      const data = Object.assign(new UpdateEmploymentHistoryDto(), req.body);
+      await validateOrReject(data);
+      const updatedApplicant = await this.jobService.updateEmploymentHistory(
+        req.user.id,
+        employmentId,
+        data
+      );
+      res.status(200).json({
+        success: true,
+        data: updatedApplicant,
+      });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async deleteEmploymentHistory(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { employmentId } = req.params;
+      await this.jobService.deleteEmploymentHistory(req.user.id, employmentId);
+      res.status(200).json({
+        success: true,
+        message: "Employment history deleted successfully.",
+      });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async getJobsByDistance(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const data = Object.assign(new DistanceFilterDto(), req.body);
+      await validateOrReject(data);
+      const jobs = await this.jobService.getJobsByDistance(data);
+      res.json({ success: true, jobs });
+    } catch (error: any) {
+      next(new ApiError(error, 500));
+    }
+  }
+
+  async searchJobs(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      let data = { title: req.query.title as string };
+      data = Object.assign(new SearchDto(), data);
+      console.log("data", data);
+      await validateOrReject(data);
+      const jobs = await this.jobService.searchJobs(req.user.id, data);
+      res.json({ success: true, jobs });
+    } catch (error: any) {
+      next(new ApiError(error, 500));
+    }
+  }
+
+  async getRecentSearches(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const searches = await this.jobService.getRecentSearches(req.user.id);
+      res.json({ success: true, searches });
+    } catch (error: any) {
+      next(new ApiError(error, 500));
+    }
+  }
+
+  async getPopularJobs(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const jobs = await this.jobService.getPopularJobs();
+      res.json({ success: true, jobs });
+    } catch (error: any) {
+      next(new ApiError(error, 500));
+    }
+  }
+
+  async applyToJob(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const data = Object.assign(new ApplyJobDto(), req.body);
+      await validateOrReject(data);
+      const application = await this.jobService.applyToJob(req.user.id, data);
+      res.status(201).json({ success: true, application });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async getRecentJobs(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const jobs = await this.jobService.getRecentJobs();
+      res.status(200).json({ success: true, jobs });
     } catch (error: any) {
       next(new ApiError(error, 400));
     }

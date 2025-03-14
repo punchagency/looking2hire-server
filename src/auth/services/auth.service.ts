@@ -9,16 +9,19 @@ import {
 } from "../models/auth.model";
 import { randomBytes } from "crypto";
 import axios from "axios";
-import { ApplicantDto } from "../dtos/applicant.auth.dto";
-import {
-  EmployerSignupDto,
-  EmployerSigninDto,
-  SendOTPDto,
-  VerifyOtpDto,
-} from "../dtos/employer.auth.dto";
 import mongoose from "mongoose";
 import { sendOTPEmail } from "../../common/utils/nodemailer.util";
 import { generateOTP } from "../../common/utils/otp.util";
+import {
+  ApplicantDto,
+  ApplicantSigninDto,
+  ApplicantSignupDto,
+  EmployerSigninDto,
+  EmployerSignupDto,
+  SendOTPDto,
+  UpdateEmployerProfileDto,
+  VerifyOtpDto,
+} from "../dtos/auth.dto";
 
 @Service()
 export class AuthService {
@@ -30,7 +33,17 @@ export class AuthService {
 
   async findApplicantByEmail(email: string) {
     try {
-      return await ApplicantModel.findOne({ email });
+      // Check both collections for existing user
+      const [applicant, employer] = await Promise.all([
+        ApplicantModel.findOne({ email }),
+        EmployerModel.findOne({ email }),
+      ]);
+
+      if (employer) {
+        throw new Error("This email is registered as an employer");
+      }
+
+      return applicant;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to find applicant by email: ${error.message}`);
@@ -245,6 +258,8 @@ export class AuthService {
     }
   }
 
+  // common
+
   async refreshToken(oldRefreshToken: string) {
     try {
       const decoded: any = jwt.verify(oldRefreshToken, env.refreshSecret);
@@ -290,16 +305,103 @@ export class AuthService {
         query.push({ phone: data.phone });
       }
 
-      const existingUser = await EmployerModel.findOne({ $or: query });
+      // Check both collections for existing user
+      const [existingEmployer, existingApplicant] = await Promise.all([
+        EmployerModel.findOne({ $or: query }),
+        ApplicantModel.findOne({ email: data.email }),
+      ]);
 
-      if (existingUser && existingUser.isVerified)
+      if (existingApplicant) {
+        throw new Error("This email is already registered as an applicant");
+      }
+
+      if (existingEmployer && existingEmployer.isVerified) {
         throw new Error(
           "User already exists. Email or Phone Number already registered"
         );
+      }
 
-      if (!existingUser) await EmployerModel.create(data);
+      if (!existingEmployer) await EmployerModel.create(data);
 
-      return await this.sendOTP({ email: data.email, context: "signup" });
+      return await this.sendOTP({
+        email: data.email,
+        context: "signup",
+        userType: "employer",
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Signup failed: ${error.message}`);
+      } else {
+        throw new Error("Signup failed: An unknown error occurred");
+      }
+    }
+  }
+
+  async applicantSignup(data: ApplicantSignupDto): Promise<string> {
+    try {
+      const query: any = [{ email: data.email }];
+
+      // Check both collections for existing user
+      const [existingApplicant, existingEmployer] = await Promise.all([
+        ApplicantModel.findOne({ $or: query }),
+        EmployerModel.findOne({ email: data.email }),
+      ]);
+
+      if (existingEmployer) {
+        throw new Error("This email is already registered as an employer");
+      }
+
+      if (existingApplicant) {
+        const accountExists = !!(
+          existingApplicant.googleId || existingApplicant.linkedinId
+        );
+        if (accountExists) {
+          if (!existingApplicant.password) {
+            throw new Error("Please link existing account.");
+          }
+          throw new Error("User already exists. Email already registered.");
+        }
+      }
+
+      if (!existingApplicant) await ApplicantModel.create(data);
+
+      return await this.sendOTP({
+        email: data.email,
+        context: "signup",
+        userType: "applicant",
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Signup failed: ${error.message}`);
+      } else {
+        throw new Error("Signup failed: An unknown error occurred");
+      }
+    }
+  }
+
+  async linkPassword(data: ApplicantSignupDto) {
+    try {
+      const existingUser = await ApplicantModel.findOne({ email: data.email });
+      if (!existingUser) {
+        throw new Error("User not found.");
+      }
+      const accountExists = !!(
+        existingUser.googleId || existingUser.linkedinId
+      );
+      if (!accountExists) {
+        throw new Error("User has not previously signed up.");
+      }
+      if (existingUser.password) {
+        throw new Error("User already has a password. Try logging in.");
+      }
+
+      existingUser.password = data.password;
+      await existingUser.save();
+      return await this.sendOTP({
+        email: data.email,
+        context: "signup",
+        userType: "applicant",
+      });
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Signup failed: ${error.message}`);
@@ -327,7 +429,43 @@ export class AuthService {
 
       if (employer.isVerified === false) throw new Error("User not verified");
 
-      return this.generateTokens(employer);
+      const loginDetails = this.generateTokens(employer);
+      return {
+        accessToken: loginDetails.accessToken,
+        refreshToken: loginDetails.refreshToken,
+        employer: loginDetails.user,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Signin failed: ${error.message}`);
+      } else {
+        throw new Error("Signin failed: An unknown error occurred");
+      }
+    }
+  }
+
+  async applicantSignin(data: ApplicantSigninDto): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    applicant: any;
+  }> {
+    try {
+      const query: any = [{ email: data.email }];
+
+      const applicant = await ApplicantModel.findOne({ $or: query });
+      if (!applicant) throw new Error("Invalid credentials");
+
+      const isMatch = await applicant.comparePassword(data.password);
+      if (!isMatch) throw new Error("Invalid credentials");
+
+      if (applicant.isVerified === false) throw new Error("User not verified");
+
+      const loginDetails = this.generateTokens(applicant);
+      return {
+        accessToken: loginDetails.accessToken,
+        refreshToken: loginDetails.refreshToken,
+        applicant: loginDetails.user,
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Signin failed: ${error.message}`);
@@ -338,14 +476,27 @@ export class AuthService {
   }
 
   async sendOTP(data: SendOTPDto): Promise<string> {
-    const employer = await EmployerModel.findOne({ email: data.email });
-    if (data.context === "signup") {
-      if (!employer) throw new Error("User does not exist");
-      if (employer.isVerified) throw new Error("User is already verified");
-    }
-    if (data.context === "forgot-password") {
-      if (!employer) throw new Error("User does not exist");
-      if (!employer.isVerified) throw new Error("User is not registered yet");
+    if (data.userType === "employer") {
+      const employer = await EmployerModel.findOne({ email: data.email });
+      if (data.context === "signup") {
+        if (!employer) throw new Error("User does not exist");
+        if (employer.isVerified) throw new Error("User is already verified");
+      }
+      if (data.context === "forgot-password") {
+        if (!employer) throw new Error("User does not exist");
+        if (!employer.isVerified) throw new Error("User is not registered yet");
+      }
+    } else if (data.userType === "applicant") {
+      const applicant = await ApplicantModel.findOne({ email: data.email });
+      if (data.context === "signup") {
+        if (!applicant) throw new Error("User does not exist");
+        if (applicant.isVerified) throw new Error("User is already verified");
+      }
+      if (data.context === "forgot-password") {
+        if (!applicant) throw new Error("User does not exist");
+        if (!applicant.isVerified)
+          throw new Error("User is not registered yet");
+      }
     }
 
     await OTPModel.deleteMany({ email: data.email });
@@ -375,20 +526,32 @@ export class AuthService {
       await OTPModel.deleteMany({ email: data.email }).session(session);
 
       if (data.context === "signup") {
-        const employer = await EmployerModel.findOne({
-          email: data.email,
-        }).session(session);
-        if (!employer) throw new Error("User details not found");
+        if (data.userType === "employer") {
+          const employer = await EmployerModel.findOne({
+            email: data.email,
+          }).session(session);
+          if (!employer) throw new Error("User details not found");
 
-        await EmployerModel.findByIdAndUpdate(
-          employer._id,
-          {
-            $set: { isVerified: true },
-          },
-          { new: true } // Return updated user and ensure session is used
-        ).session(session);
+          await EmployerModel.findByIdAndUpdate(
+            employer._id,
+            {
+              $set: { isVerified: true },
+            },
+            { new: true } // Return updated user and ensure session is used
+          ).session(session);
+        } else if (data.userType === "applicant") {
+          const applicant = await ApplicantModel.findOne({
+            email: data.email,
+          }).session(session);
+          if (!applicant) throw new Error("User details not found");
+
+          await ApplicantModel.findByIdAndUpdate(
+            applicant._id,
+            { $set: { isVerified: true } },
+            { new: true } // Return updated user and ensure session is used
+          ).session(session);
+        }
       }
-
       await session.commitTransaction();
       session.endSession();
       return "OTP Verified successfully";
@@ -405,28 +568,44 @@ export class AuthService {
     }
   }
 
-  private generateTokens(employer: any): {
+  async updateEmployerProfile(
+    employerId: string,
+    data: UpdateEmployerProfileDto
+  ) {
+    try {
+      return await EmployerModel.findOneAndUpdate({ _id: employerId }, data, {
+        new: true,
+        runValidators: true,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Job update failed: ${error.message}`);
+      } else {
+        throw new Error(
+          "Employer profile update failed: An unknown error occurred"
+        );
+      }
+    }
+  }
+
+  private generateTokens(user: any): {
     accessToken: string;
     refreshToken: string;
-    employer: any;
+    user: any;
   } {
-    const accessToken = this.generateAccessToken(employer);
-    const refreshToken = jwt.sign({ id: employer._id }, env.refreshSecret, {
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = jwt.sign({ id: user._id }, env.refreshSecret, {
       expiresIn: 604800,
     });
 
-    const employerObject = { ...employer.toObject() };
-    delete employerObject.password;
-    return { accessToken, refreshToken, employer: employerObject };
+    const userObject = { ...user.toObject() };
+    delete userObject.password;
+    return { accessToken, refreshToken, user: userObject };
   }
 
-  private generateAccessToken(employer: any): string {
-    return jwt.sign(
-      { id: employer._id, email: employer.email },
-      env.jwtSecret,
-      {
-        expiresIn: 3600,
-      }
-    );
+  private generateAccessToken(user: any): string {
+    return jwt.sign({ id: user._id, email: user.email }, env.jwtSecret, {
+      expiresIn: 3600,
+    });
   }
 }
