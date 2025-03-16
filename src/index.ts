@@ -12,6 +12,7 @@ import passport from "passport";
 import { errorMiddleware } from "./common/middlewares/error.middleware";
 import jobRouter from "./job/routes/job.routes";
 import decalRouter from "./decal/routes/decal.routes";
+import resumeRouter from "./resume/routes/resume.routes";
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ connectDB();
 app.use("/api/auth", authRouter);
 app.use("/api/job", jobRouter);
 app.use("/api/decal", decalRouter);
+app.use("/api/resume", resumeRouter);
 app.use(errorMiddleware);
 
 const PORT = env.server_port || 8080;
