@@ -33,8 +33,8 @@ app.use("/api/decal", decalRouter);
 app.use("/api/resume", resumeRouter);
 app.use(errorMiddleware);
 
-const PORT = env.server_port || 8080;
+const PORT = process.env.PORT || env.server_port; // Use Heroku's port or fallback to env config
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
