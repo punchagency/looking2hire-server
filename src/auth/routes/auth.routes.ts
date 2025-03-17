@@ -50,6 +50,7 @@ authRouter.post(
   "/employer/update-profile",
   authController.updateEmployerProfile.bind(authController)
 );
+authRouter.post("/signout", authController.signout.bind(authController));
 
 //
 authRouter.get("/", authController.getAllApplicants.bind(authController));

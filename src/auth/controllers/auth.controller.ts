@@ -274,6 +274,29 @@ export class AuthController {
     }
   }
 
+  async signout(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const refreshToken = req.cookies.refreshToken;
+      if (!refreshToken) throw new Error("No refresh token found");
+
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+      });
+
+      res
+        .status(200)
+        .json({ success: true, message: "Signed out successfully" });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
   async getAllApplicants(
     req: Request,
     res: Response,
