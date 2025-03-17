@@ -91,8 +91,11 @@ export class Employer {
   @prop({ required: false })
   company_logo?: string;
 
-  @prop({ required: false })
-  address?: string;
+  @prop({ required: true })
+  address: string;
+
+  @prop({ type: () => [Number], required: true })
+  location: [number, number];
 
   @prop({ required: false })
   heading?: string;

@@ -53,9 +53,6 @@ export class Application {
   @prop({ required: true, ref: () => Applicant })
   applicantId: Ref<Applicant>;
 
-  @prop({ default: Date.now })
-  applied_at?: Date;
-
   @prop({
     required: true,
     enum: ["Pending", "Reviewed", "Interview", "Hired", "Rejected"],

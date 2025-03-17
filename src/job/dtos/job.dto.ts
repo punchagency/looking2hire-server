@@ -30,17 +30,7 @@ export class UpdateJobPostDto {
 
 export class ApplicationDto {
   @IsString()
-  jobId: string; // ObjectId reference
-
-  @IsString()
-  applicantId: string; // ObjectId reference
-
-  @IsOptional()
-  @IsDate()
-  applied_at?: Date;
-
-  @IsEnum(["Pending", "Reviewed", "Interview", "Hired", "Rejected"])
-  status: string;
+  jobId: string;
 }
 
 export class SearchDto {

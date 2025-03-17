@@ -118,6 +118,12 @@ export class EmployerSignupDto {
   @IsString()
   full_name: string;
 
+  @IsString()
+  address: string;
+
+  @IsArray()
+  location: [number, number];
+
   @IsEmail({}, { message: "Invalid email format" })
   email: string;
 

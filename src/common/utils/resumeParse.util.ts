@@ -48,16 +48,31 @@ async function parseResume(filePath: string): Promise<any> {
       throw new Error("Failed to extract meaningful text from the resume.");
     }
 
-    const prompt = `Extract key details from the following resume text:
-    - Name
-    - Contact Information (Phone, Email)
-    - Work Experience (Company, Position, Duration, Start date, End date, Description, Type of employment)
-    
-    
+    const prompt = `Extract the following key details from the provided resume text and return a JSON object with the exact specified keys:  
+
+    {
+      "name": "Full Name",
+      "contact": {
+        "phone": "Phone Number",
+        "email": "Email Address"
+      },
+      "work_experience": [
+        {
+          "company": "Company Name",
+          "position": "Job Title",
+          "duration": "Total Duration",
+          "start_date": "Start Date (YYYY-MM-DD or best format available)",
+          "end_date": "End Date (YYYY-MM-DD or 'Present' if currently employed)",
+          "description": "Job Responsibilities and Achievements",
+          "employment_type": "Full-time, Part-time, Contract, Internship, etc."
+        }
+      ]
+    }
+
     Resume Text:
     """${resumeText}"""
 
-    Provide the output as a JSON object.`;
+    Ensure that the JSON structure strictly follows this format, even if some fields are unavailable. If a field is missing, return it as null. Do not add extra fields.`;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",

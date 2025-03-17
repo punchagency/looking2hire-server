@@ -129,9 +129,17 @@ export class JobService {
         throw new Error("Invalid mongodb ID");
       }
 
+      console.log("ran");
       const updatedApplicant = await ApplicantModel.findOneAndUpdate(
         { _id: applicantId, "employment_history._id": employmentId },
-        { $set: { "employment_history.$": data } },
+        {
+          $set: Object.fromEntries(
+            Object.entries(data).map(([key, value]) => [
+              `employment_history.$.${key}`,
+              value,
+            ])
+          ),
+        },
         { new: true, runValidators: true }
       );
       if (!updatedApplicant) throw new Error("Employment history not found.");
