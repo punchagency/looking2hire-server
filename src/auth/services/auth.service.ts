@@ -21,6 +21,7 @@ import {
   SendOTPDto,
   UpdateEmployerProfileDto,
   VerifyOtpDto,
+  UpdateApplicantDto,
 } from "../dtos/auth.dto";
 
 @Service()
@@ -583,6 +584,23 @@ export class AuthService {
       } else {
         throw new Error(
           "Employer profile update failed: An unknown error occurred"
+        );
+      }
+    }
+  }
+
+  async updateApplicantProfile(applicantId: string, data: UpdateApplicantDto) {
+    try {
+      return await ApplicantModel.findOneAndUpdate({ _id: applicantId }, data, {
+        new: true,
+        runValidators: true,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Applicant profile update failed: ${error.message}`);
+      } else {
+        throw new Error(
+          "Applicant profile update failed: An unknown error occurred"
         );
       }
     }

@@ -78,4 +78,41 @@ jobRouter.get(
   jobController.getRecentJobs.bind(jobController)
 );
 
+// Save and View Job Routes
+jobRouter.post(
+  "/applicant/save",
+  authenticate,
+  jobController.saveJob.bind(jobController)
+);
+
+jobRouter.delete(
+  "/applicant/save/:jobId",
+  authenticate,
+  jobController.unsaveJob.bind(jobController)
+);
+
+jobRouter.get(
+  "/applicant/saved",
+  authenticate,
+  jobController.getSavedJobs.bind(jobController)
+);
+
+jobRouter.post(
+  "/applicant/view",
+  authenticate,
+  jobController.markJobAsViewed.bind(jobController)
+);
+
+jobRouter.get(
+  "/applicant/viewed",
+  authenticate,
+  jobController.getViewedJobs.bind(jobController)
+);
+
+jobRouter.get(
+  "/applicant/recommended",
+  authenticate,
+  jobController.getRecommendedJobs.bind(jobController)
+);
+
 export default jobRouter;

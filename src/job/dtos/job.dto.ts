@@ -12,9 +12,6 @@ export class JobPostDto {
   @IsString()
   job_address: string;
 
-  @IsString()
-  job_description: string;
-
   @IsArray()
   location: [number, number];
 
@@ -23,9 +20,21 @@ export class JobPostDto {
 }
 
 export class UpdateJobPostDto {
-  constructor(init?: Partial<JobPostDto>) {
-    Object.assign(this, init);
-  }
+  @IsOptional()
+  @IsString()
+  job_title?: string;
+
+  @IsOptional()
+  @IsString()
+  job_address?: string;
+
+  @IsOptional()
+  @IsArray()
+  location?: [number, number];
+
+  @IsOptional()
+  @IsArray()
+  qualifications?: string[];
 }
 
 export class ApplicationDto {
@@ -50,6 +59,16 @@ export class DistanceFilterDto {
 }
 
 export class ApplyJobDto {
+  @IsString()
+  jobId: string;
+}
+
+export class SaveJobDto {
+  @IsString()
+  jobId: string;
+}
+
+export class ViewJobDto {
   @IsString()
   jobId: string;
 }

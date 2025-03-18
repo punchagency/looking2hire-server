@@ -5,25 +5,48 @@ import {
   JobPostModel,
   PopularJobsModel,
   SearchHistoryModel,
+  SavedJobModel,
+  ViewedJobModel,
 } from "../models/job.model";
-import { ApplicantModel } from "../../auth/models/auth.model";
+import { ApplicantModel, EmployerModel } from "../../auth/models/auth.model";
 import {
   JobPostDto,
   UpdateJobPostDto,
   DistanceFilterDto,
   ApplyJobDto,
   SearchDto,
+  SaveJobDto,
+  ViewJobDto,
 } from "../dtos/job.dto";
 import {
   EmploymentHistoryDto,
   UpdateEmploymentHistoryDto,
 } from "../../auth/dtos/auth.dto";
+import generateJobDescription from "../../common/utils/jobDescription.util";
 
 @Service()
 export class JobService {
   async createJob(employerId: string, data: JobPostDto) {
     try {
-      return await JobPostModel.create({ ...data, employerId });
+      // Get employer details
+      const employer = await EmployerModel.findById(employerId);
+      if (!employer) {
+        throw new Error("Employer not found");
+      }
+
+      // Generate job description using AI
+      const jobDescription = await generateJobDescription(
+        data.job_title,
+        data.qualifications,
+        employer.company_name
+      );
+
+      // Create job with generated description
+      return await JobPostModel.create({
+        ...data,
+        employerId,
+        ...jobDescription,
+      });
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Job creation failed: ${error.message}`);
@@ -39,9 +62,27 @@ export class JobService {
         throw new Error("Invalid mongodb ID");
       }
 
+      // Get current job and employer details
+      const currentJob = await JobPostModel.findOne({ _id: jobId, employerId });
+      if (!currentJob) {
+        throw new Error("Job not found");
+      }
+
+      const employer = await EmployerModel.findById(employerId);
+      if (!employer) {
+        throw new Error("Employer not found");
+      }
+
+      // Generate new job description
+      const jobDescription = await generateJobDescription(
+        data.job_title || currentJob.job_title,
+        data.qualifications || currentJob.qualifications,
+        employer.company_name
+      );
+
       return await JobPostModel.findOneAndUpdate(
         { _id: jobId, employerId },
-        data,
+        { ...data, ...jobDescription },
         { new: true, runValidators: true }
       );
     } catch (error) {
@@ -73,7 +114,22 @@ export class JobService {
 
       const job = await JobPostModel.findOne({ _id: jobId, employerId });
       if (!job) throw new Error("Job not found");
-      return job;
+
+      // Get application statistics
+      const [totalApplications, rejectedCount, hiredCount] = await Promise.all([
+        ApplicationModel.countDocuments({ jobId }),
+        ApplicationModel.countDocuments({ jobId, status: "Rejected" }),
+        ApplicationModel.countDocuments({ jobId, status: "Hired" }),
+      ]);
+
+      return {
+        ...job.toObject(),
+        applicationStats: {
+          total: totalApplications,
+          rejected: rejectedCount,
+          hired: hiredCount,
+        },
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Fetching job failed: ${error.message}`);
@@ -336,6 +392,163 @@ export class JobService {
       } else {
         throw new Error(
           "Fetching recent jobs failed: An unknown error occurred"
+        );
+      }
+    }
+  }
+
+  async saveJob(applicantId: string, data: SaveJobDto) {
+    try {
+      // Check if job exists
+      const job = await JobPostModel.findById(data.jobId);
+      if (!job) {
+        throw new Error("Job not found");
+      }
+
+      // Check if already saved
+      const existingSave = await SavedJobModel.findOne({
+        jobId: data.jobId,
+        applicantId,
+      });
+
+      if (existingSave) {
+        throw new Error("Job already saved");
+      }
+
+      return await SavedJobModel.create({
+        jobId: data.jobId,
+        applicantId,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to save job: ${error.message}`);
+      } else {
+        throw new Error("Failed to save job: An unknown error occurred");
+      }
+    }
+  }
+
+  async unsaveJob(applicantId: string, jobId: string) {
+    try {
+      const result = await SavedJobModel.findOneAndDelete({
+        jobId,
+        applicantId,
+      });
+      if (!result) {
+        throw new Error("Saved job not found");
+      }
+      return result;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to unsave job: ${error.message}`);
+      } else {
+        throw new Error("Failed to unsave job: An unknown error occurred");
+      }
+    }
+  }
+
+  async getSavedJobs(applicantId: string) {
+    try {
+      return await SavedJobModel.find({ applicantId })
+        .populate("jobId")
+        .sort({ savedAt: -1 })
+        .lean();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to get saved jobs: ${error.message}`);
+      } else {
+        throw new Error("Failed to get saved jobs: An unknown error occurred");
+      }
+    }
+  }
+
+  async markJobAsViewed(applicantId: string, data: ViewJobDto) {
+    try {
+      // Check if job exists
+      const job = await JobPostModel.findById(data.jobId);
+      if (!job) {
+        throw new Error("Job not found");
+      }
+
+      // Update or create view record
+      return await ViewedJobModel.findOneAndUpdate(
+        { jobId: data.jobId, applicantId },
+        { $set: { viewedAt: new Date() } },
+        { upsert: true, new: true }
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to mark job as viewed: ${error.message}`);
+      } else {
+        throw new Error(
+          "Failed to mark job as viewed: An unknown error occurred"
+        );
+      }
+    }
+  }
+
+  async getViewedJobs(applicantId: string) {
+    try {
+      return await ViewedJobModel.find({ applicantId })
+        .populate("jobId")
+        .sort({ viewedAt: -1 })
+        .lean();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to get viewed jobs: ${error.message}`);
+      } else {
+        throw new Error("Failed to get viewed jobs: An unknown error occurred");
+      }
+    }
+  }
+
+  async getRecommendedJobs(applicantId: string) {
+    try {
+      // Get applicant's heading
+      const applicant = await ApplicantModel.findById(applicantId);
+      if (!applicant) {
+        throw new Error("Applicant not found");
+      }
+
+      if (!applicant.heading) {
+        throw new Error("Applicant heading not found");
+      }
+
+      // Get all jobs and filter based on heading similarity
+      const jobs = await JobPostModel.find().lean();
+
+      // Convert heading to lowercase and split into words
+      const heading = applicant.heading.toLowerCase();
+      const headingWords = heading.split(" ").filter((word) => word.length > 3);
+
+      // Filter jobs based on heading similarity
+      const recommendedJobs = jobs.filter((job) => {
+        // Convert job title to lowercase for case-insensitive comparison
+        const jobTitle = job.job_title.toLowerCase();
+
+        // Check if job title contains any words from the heading
+        return headingWords.some((word) => jobTitle.includes(word));
+      });
+
+      // Sort by relevance (number of matching words)
+      recommendedJobs.sort((a, b) => {
+        const aMatches = headingWords.filter((word) =>
+          a.job_title.toLowerCase().includes(word)
+        ).length;
+        const bMatches = headingWords.filter((word) =>
+          b.job_title.toLowerCase().includes(word)
+        ).length;
+        return bMatches - aMatches;
+      });
+
+      // Limit to 10 recommendations
+      return recommendedJobs.slice(0, 10);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to get recommended jobs: ${error.message}`);
+      } else {
+        throw new Error(
+          "Failed to get recommended jobs: An unknown error occurred"
         );
       }
     }

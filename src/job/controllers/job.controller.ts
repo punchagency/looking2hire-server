@@ -11,6 +11,8 @@ import {
   DistanceFilterDto,
   ApplyJobDto,
   SearchDto,
+  SaveJobDto,
+  ViewJobDto,
 } from "../dtos/job.dto";
 import {
   EmploymentHistoryDto,
@@ -227,6 +229,76 @@ export class JobController {
       res.status(200).json({ success: true, jobs });
     } catch (error: any) {
       next(new ApiError(error, 400));
+    }
+  }
+
+  async saveJob(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const data = Object.assign(new SaveJobDto(), req.body);
+      await validateOrReject(data);
+      const savedJob = await this.jobService.saveJob(req.user.id, data);
+      res.status(201).json({ success: true, savedJob });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async unsaveJob(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { jobId } = req.params;
+      await this.jobService.unsaveJob(req.user.id, jobId);
+      res
+        .status(200)
+        .json({ success: true, message: "Job unsaved successfully" });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async getSavedJobs(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const savedJobs = await this.jobService.getSavedJobs(req.user.id);
+      res.status(200).json({ success: true, savedJobs });
+    } catch (error: any) {
+      next(new ApiError(error, 500));
+    }
+  }
+
+  async markJobAsViewed(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const data = Object.assign(new ViewJobDto(), req.body);
+      await validateOrReject(data);
+      const viewedJob = await this.jobService.markJobAsViewed(
+        req.user.id,
+        data
+      );
+      res.status(200).json({ success: true, viewedJob });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async getViewedJobs(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const viewedJobs = await this.jobService.getViewedJobs(req.user.id);
+      res.status(200).json({ success: true, viewedJobs });
+    } catch (error: any) {
+      next(new ApiError(error, 500));
+    }
+  }
+
+  async getRecommendedJobs(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const recommendedJobs = await this.jobService.getRecommendedJobs(
+        req.user.id
+      );
+      res.status(200).json({ success: true, recommendedJobs });
+    } catch (error: any) {
+      next(new ApiError(error, 500));
     }
   }
 }

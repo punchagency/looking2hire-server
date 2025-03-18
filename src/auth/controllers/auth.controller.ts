@@ -14,6 +14,7 @@ import {
   SendOTPDto,
   UpdateEmployerProfileDto,
   VerifyOtpDto,
+  UpdateApplicantDto,
 } from "../dtos/auth.dto";
 
 @Service()
@@ -269,6 +270,24 @@ export class AuthController {
         data
       );
       res.status(200).json({ success: true, employer });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
+
+  async updateApplicantProfile(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const data = Object.assign(new UpdateApplicantDto(), req.body);
+      await validateOrReject(data);
+      const applicant = await this.authService.updateApplicantProfile(
+        req.user.id,
+        data
+      );
+      res.status(200).json({ success: true, applicant });
     } catch (error: any) {
       next(new ApiError(error, 400));
     }

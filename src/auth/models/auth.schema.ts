@@ -5,6 +5,9 @@ export class EmploymentHistory {
   @prop({ required: true })
   job_title: string;
 
+  @prop({ required: false })
+  company_logo?: string;
+
   @prop({ required: true })
   company_name: string;
 

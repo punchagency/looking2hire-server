@@ -46,9 +46,15 @@ authRouter.post(
 );
 authRouter.post("/verify-otp", authController.verifyOTP.bind(authController));
 authRouter.post("/send-otp", authController.sendOTP.bind(authController));
-authRouter.post(
+authRouter.patch(
   "/employer/update-profile",
+  authenticate,
   authController.updateEmployerProfile.bind(authController)
+);
+authRouter.patch(
+  "/applicant/update-profile",
+  authenticate,
+  authController.updateApplicantProfile.bind(authController)
 );
 authRouter.post("/signout", authController.signout.bind(authController));
 

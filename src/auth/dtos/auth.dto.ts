@@ -46,6 +46,10 @@ export class EmploymentHistoryDto {
   @IsString()
   job_title: string;
 
+  @IsOptional()
+  @IsString()
+  company_logo?: string;
+
   @IsString()
   company_name: string;
 
@@ -234,4 +238,22 @@ export class UpdateEmployerProfileDto {
   @IsOptional()
   @IsString()
   body?: string;
+}
+
+export class UpdateApplicantDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  profile_pic?: string;
+
+  @IsOptional()
+  @IsString()
+  heading?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
 }

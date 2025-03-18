@@ -40,10 +40,16 @@ export class JobPost {
   location: [number, number];
 
   @prop({ required: true })
-  job_description: string;
+  summary: string;
+
+  @prop({ required: true, type: () => [String] })
+  key_responsibilities: string[];
 
   @prop({ required: true, type: () => [String] })
   qualifications: string[];
+
+  @prop({ required: true })
+  closing_statement: string;
 }
 
 export class Application {
@@ -58,4 +64,26 @@ export class Application {
     enum: ["Pending", "Reviewed", "Interview", "Hired", "Rejected"],
   })
   status: string;
+}
+
+export class SavedJob {
+  @prop({ required: true, ref: () => JobPost })
+  jobId: Ref<JobPost>;
+
+  @prop({ required: true, ref: () => Applicant })
+  applicantId: Ref<Applicant>;
+
+  @prop({ default: Date.now })
+  savedAt?: Date;
+}
+
+export class ViewedJob {
+  @prop({ required: true, ref: () => JobPost })
+  jobId: Ref<JobPost>;
+
+  @prop({ required: true, ref: () => Applicant })
+  applicantId: Ref<Applicant>;
+
+  @prop({ default: Date.now })
+  viewedAt?: Date;
 }
