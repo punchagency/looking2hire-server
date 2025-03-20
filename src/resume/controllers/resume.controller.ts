@@ -1,12 +1,7 @@
-import { NextFunction, Request, Response } from "express";
-
+import { NextFunction, Response } from "express";
 import { Service } from "typedi";
-
 import { ResumeService } from "../services/resume.service";
-
-interface MulterRequest extends Request {
-  file?: Express.Multer.File;
-}
+import { MulterRequest } from "../../common/middlewares/auth.middleware";
 
 @Service()
 export class ResumeController {

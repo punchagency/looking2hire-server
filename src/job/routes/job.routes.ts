@@ -2,6 +2,7 @@ import express from "express";
 import { Container } from "typedi";
 import { authenticate } from "../../common/middlewares/auth.middleware";
 import { JobController } from "../controllers/job.controller";
+import { upload } from "../../common/middlewares/upload.middleware";
 
 const jobRouter = express.Router();
 const jobController = Container.get(JobController);
@@ -34,11 +35,13 @@ jobRouter.delete(
 jobRouter.post(
   "/applicant/employment-history",
   authenticate,
+  upload.single("company_logo"),
   jobController.addEmploymentHistory.bind(jobController)
 );
 jobRouter.patch(
   "/applicant/employment-history/:employmentId",
   authenticate,
+  upload.single("company_logo"),
   jobController.updateEmploymentHistory.bind(jobController)
 );
 jobRouter.delete(

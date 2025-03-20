@@ -5,7 +5,8 @@ import { AuthService } from "../services/auth.service";
 import { env } from "../../config/env";
 import { ApiError } from "../../common/middlewares/error.middleware";
 import { validateOrReject } from "class-validator";
-import { AuthRequest } from "../../common/middlewares/auth.middleware";
+import { MulterRequest } from "../../common/middlewares/auth.middleware";
+import { uploadToS3 } from "../../common/utils/s3.util";
 import {
   ApplicantSigninDto,
   ApplicantSignupDto,
@@ -258,13 +259,20 @@ export class AuthController {
   }
 
   async updateEmployerProfile(
-    req: AuthRequest,
+    req: MulterRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
       const data = Object.assign(new UpdateEmployerProfileDto(), req.body);
       await validateOrReject(data);
+
+      // Handle company logo upload if file exists
+      if (req.file) {
+        const logoUrl = await uploadToS3(req.file, "company-logos");
+        data.company_logo = logoUrl;
+      }
+
       const employer = await this.authService.updateEmployerProfile(
         req.user.id,
         data
@@ -276,13 +284,20 @@ export class AuthController {
   }
 
   async updateApplicantProfile(
-    req: AuthRequest,
+    req: MulterRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
       const data = Object.assign(new UpdateApplicantDto(), req.body);
       await validateOrReject(data);
+
+      // Handle profile picture upload if file exists
+      if (req.file) {
+        const profilePicUrl = await uploadToS3(req.file, "profile-pictures");
+        data.profile_pic = profilePicUrl;
+      }
+
       const applicant = await this.authService.updateApplicantProfile(
         req.user.id,
         data

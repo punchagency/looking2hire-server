@@ -31,6 +31,9 @@ export class JobPost {
   employerId: Ref<Employer>;
 
   @prop({ required: true })
+  company_name: string;
+
+  @prop({ required: true })
   job_title: string;
 
   @prop({ required: true })

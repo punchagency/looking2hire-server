@@ -6,6 +6,10 @@ export interface AuthRequest extends Request {
   user?: any;
 }
 
+export interface MulterRequest extends AuthRequest {
+  file?: Express.Multer.File;
+}
+
 export function authenticate(
   req: AuthRequest,
   res: Response,

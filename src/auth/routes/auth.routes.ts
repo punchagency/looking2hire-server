@@ -2,6 +2,7 @@ import express from "express";
 import { Container } from "typedi";
 import { AuthController } from "../controllers/auth.controller";
 import { authenticate } from "../../common/middlewares/auth.middleware";
+import { upload } from "../../common/middlewares/upload.middleware";
 
 const authRouter = express.Router();
 const authController = Container.get(AuthController);
@@ -49,11 +50,13 @@ authRouter.post("/send-otp", authController.sendOTP.bind(authController));
 authRouter.patch(
   "/employer/update-profile",
   authenticate,
+  upload.single("company_logo"),
   authController.updateEmployerProfile.bind(authController)
 );
 authRouter.patch(
   "/applicant/update-profile",
   authenticate,
+  upload.single("profile_pic"),
   authController.updateApplicantProfile.bind(authController)
 );
 authRouter.post("/signout", authController.signout.bind(authController));

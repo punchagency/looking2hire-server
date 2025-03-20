@@ -41,10 +41,11 @@ export class JobService {
         employer.company_name
       );
 
-      // Create job with generated description
+      // Create job with generated description and company name
       return await JobPostModel.create({
         ...data,
         employerId,
+        company_name: employer.company_name,
         ...jobDescription,
       });
     } catch (error) {

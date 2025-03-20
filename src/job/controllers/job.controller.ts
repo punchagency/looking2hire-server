@@ -4,7 +4,10 @@ import { Service } from "typedi";
 import { JobService } from "../services/job.service";
 import { validateOrReject } from "class-validator";
 import { ApiError } from "../../common/middlewares/error.middleware";
-import { AuthRequest } from "../../common/middlewares/auth.middleware";
+import {
+  AuthRequest,
+  MulterRequest,
+} from "../../common/middlewares/auth.middleware";
 import {
   JobPostDto,
   UpdateJobPostDto,
@@ -18,6 +21,7 @@ import {
   EmploymentHistoryDto,
   UpdateEmploymentHistoryDto,
 } from "../../auth/dtos/auth.dto";
+import { uploadToS3 } from "../../common/utils/s3.util";
 
 @Service()
 export class JobController {
@@ -98,13 +102,20 @@ export class JobController {
   }
 
   async addEmploymentHistory(
-    req: AuthRequest,
+    req: MulterRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
       const data = Object.assign(new EmploymentHistoryDto(), req.body);
       await validateOrReject(data);
+
+      // Handle company logo upload if file exists
+      if (req.file) {
+        const logoUrl = await uploadToS3(req.file, "company-logos");
+        data.company_logo = logoUrl;
+      }
+
       const updatedApplicant = await this.jobService.addEmploymentHistory(
         req.user.id,
         data
@@ -119,7 +130,7 @@ export class JobController {
   }
 
   async updateEmploymentHistory(
-    req: AuthRequest,
+    req: MulterRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> {
@@ -127,6 +138,13 @@ export class JobController {
       const { employmentId } = req.params;
       const data = Object.assign(new UpdateEmploymentHistoryDto(), req.body);
       await validateOrReject(data);
+
+      // Handle company logo upload if file exists
+      if (req.file) {
+        const logoUrl = await uploadToS3(req.file, "company-logos");
+        data.company_logo = logoUrl;
+      }
+
       const updatedApplicant = await this.jobService.updateEmploymentHistory(
         req.user.id,
         employmentId,

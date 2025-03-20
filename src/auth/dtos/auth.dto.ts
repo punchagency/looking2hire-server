@@ -173,39 +173,6 @@ export class ApplicantSigninDto {
   password: string;
 }
 
-export class UpdateEmployerDto {
-  @IsString()
-  company_name?: string;
-
-  @IsOptional()
-  @IsString()
-  company_logo?: string;
-
-  @IsOptional()
-  @IsString()
-  address?: string;
-
-  @IsOptional()
-  @IsString()
-  heading?: string;
-
-  @IsOptional()
-  @IsString()
-  body?: string;
-
-  @IsOptional()
-  @IsString()
-  full_name?: string;
-
-  @IsOptional()
-  @IsEmail({}, { message: "Invalid email format" })
-  email?: string;
-
-  @IsOptional()
-  @IsPhoneNumber(undefined, { message: "Invalid phone number format" })
-  phone?: string;
-}
-
 export class UpdateEmployerProfileDto {
   @IsOptional()
   @IsString()
