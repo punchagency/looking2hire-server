@@ -62,14 +62,14 @@ export class AuthController {
       const { accessToken, refreshToken } =
         await this.authService.exchangeAuthCodeForTokens(code);
 
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+      // res.cookie("refreshToken", refreshToken, {
+      //   httpOnly: true,
+      //   secure: process.env.NODE_ENV === "production",
+      //   sameSite: "strict",
+      //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      // });
 
-      res.status(200).json({ success: true, accessToken });
+      res.status(200).json({ success: true, accessToken, refreshToken });
     } catch (error: any) {
       next(new ApiError(error, 401));
     }
@@ -187,16 +187,17 @@ export class AuthController {
       const data = Object.assign(new EmployerSigninDto(), req.body);
       await validateOrReject(data);
       const signInDetails = await this.authService.employerSignin(data);
-      res.cookie("refreshToken", signInDetails.refreshToken, {
-        httpOnly: true, // Prevent JavaScript access
-        secure: process.env.NODE_ENV === "production", // change to secure: true -> ensures it works only over HTTPS
-        sameSite: "strict", // Prevents CSRF attacks
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+      // res.cookie("refreshToken", signInDetails.refreshToken, {
+      //   httpOnly: true, // Prevent JavaScript access
+      //   secure: process.env.NODE_ENV === "production", // change to secure: true -> ensures it works only over HTTPS
+      //   sameSite: "strict", // Prevents CSRF attacks
+      //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      // });
       res.status(200).json({
         success: true,
         employer: signInDetails.employer,
         accessToken: signInDetails.accessToken,
+        refreshToken: signInDetails.refreshToken,
       });
     } catch (error: any) {
       next(new ApiError(error, 400));
@@ -212,16 +213,17 @@ export class AuthController {
       const data = Object.assign(new ApplicantSigninDto(), req.body);
       await validateOrReject(data);
       const signInDetails = await this.authService.applicantSignin(data);
-      res.cookie("refreshToken", signInDetails.refreshToken, {
-        httpOnly: true, // Prevent JavaScript access
-        secure: process.env.NODE_ENV === "production", // change to secure: true -> ensures it works only over HTTPS
-        sameSite: "strict", // Prevents CSRF attacks
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+      // res.cookie("refreshToken", signInDetails.refreshToken, {
+      //   httpOnly: true, // Prevent JavaScript access
+      //   secure: process.env.NODE_ENV === "production", // change to secure: true -> ensures it works only over HTTPS
+      //   sameSite: "strict", // Prevents CSRF attacks
+      //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      // });
       res.status(200).json({
         success: true,
         applicant: signInDetails.applicant,
         accessToken: signInDetails.accessToken,
+        refreshToken: signInDetails.refreshToken,
       });
     } catch (error: any) {
       next(new ApiError(error, 400));

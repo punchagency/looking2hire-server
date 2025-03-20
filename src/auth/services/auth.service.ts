@@ -265,7 +265,7 @@ export class AuthService {
     try {
       const decoded: any = jwt.verify(oldRefreshToken, env.refreshSecret);
       const newAccessToken = jwt.sign({ id: decoded.id }, env.jwtSecret, {
-        expiresIn: 60,
+        expiresIn: 900,
       });
 
       return newAccessToken;
@@ -623,7 +623,7 @@ export class AuthService {
 
   private generateAccessToken(user: any): string {
     return jwt.sign({ id: user._id, email: user.email }, env.jwtSecret, {
-      expiresIn: 60,
+      expiresIn: 900,
     });
   }
 }
