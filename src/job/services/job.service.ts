@@ -336,10 +336,25 @@ export class JobService {
 
   async getPopularJobs() {
     try {
-      return await PopularJobsModel.find()
+      const popularJobs = await PopularJobsModel.find()
+        .populate({
+          path: "jobId",
+          select:
+            "job_title company_name job_address location qualifications description responsibilities requirements", // Add any other job fields you need
+        })
         .sort({ applicationCount: -1 })
         .limit(10)
         .lean();
+
+      // Transform the response to make it cleaner
+      return popularJobs.map((job) => ({
+        popularityStats: {
+          _id: job._id,
+          applicationCount: job.applicationCount,
+          lastUpdated: job.lastUpdated,
+        },
+        jobDetails: job.jobId, // All the job details
+      }));
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Fetching popular jobs failed: ${error.message}`);
