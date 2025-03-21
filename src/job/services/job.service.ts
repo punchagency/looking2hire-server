@@ -116,12 +116,16 @@ export class JobService {
       const job = await JobPostModel.findOne({ _id: jobId, employerId });
       if (!job) throw new Error("Job not found");
 
-      // Get application statistics
-      const [totalApplications, rejectedCount, hiredCount] = await Promise.all([
-        ApplicationModel.countDocuments({ jobId }),
-        ApplicationModel.countDocuments({ jobId, status: "Rejected" }),
-        ApplicationModel.countDocuments({ jobId, status: "Hired" }),
-      ]);
+      // Get application statistics and applications with applicant details
+      const [totalApplications, rejectedCount, hiredCount, applications] =
+        await Promise.all([
+          ApplicationModel.countDocuments({ jobId }),
+          ApplicationModel.countDocuments({ jobId, status: "Rejected" }),
+          ApplicationModel.countDocuments({ jobId, status: "Hired" }),
+          ApplicationModel.find({ jobId })
+            .populate("applicantId", "name email heading profile_pic") // Only select necessary fields
+            .lean(),
+        ]);
 
       return {
         ...job.toObject(),
@@ -130,6 +134,11 @@ export class JobService {
           rejected: rejectedCount,
           hired: hiredCount,
         },
+        applications: applications.map((app) => ({
+          ...app,
+          applicant: app.applicantId, // Rename applicantId to applicant for better clarity
+          applicantId: undefined, // Remove the original applicantId field
+        })),
       };
     } catch (error) {
       if (error instanceof Error) {
