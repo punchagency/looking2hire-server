@@ -15,8 +15,8 @@ export class JobPostDto {
   @IsArray()
   location: [number, number];
 
-  @IsArray()
-  qualifications: string[];
+  @IsString()
+  qualifications: string;
 }
 
 export class UpdateJobPostDto {
@@ -33,8 +33,8 @@ export class UpdateJobPostDto {
   location?: [number, number];
 
   @IsOptional()
-  @IsArray()
-  qualifications?: string[];
+  @IsString()
+  qualifications?: string;
 }
 
 export class ApplicationDto {

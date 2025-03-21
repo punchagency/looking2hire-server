@@ -77,7 +77,7 @@ export class JobService {
       // Generate new job description
       const jobDescription = await generateJobDescription(
         data.job_title || currentJob.job_title,
-        data.qualifications || currentJob.qualifications,
+        data.qualifications || currentJob.qualifications.join(", "),
         employer.company_name
       );
 

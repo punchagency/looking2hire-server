@@ -2,7 +2,7 @@ import { openai } from "../../config/openAi-config";
 
 async function generateJobDescription(
   job_title: string,
-  qualifications: string[],
+  qualifications: string,
   company_name: string
 ): Promise<any> {
   try {
@@ -29,7 +29,7 @@ Generate a JSON-formatted job description with the following structure:
 Ensure that the JSON strictly follows this format. Generate a natural number of responsibilities and qualifications based on the role's complexity.
 
 **Job Title:** ${job_title}  
-**Qualifications:** ${qualifications.join(", ")}
+**Qualifications:** ${qualifications}
 **Company Name:** ${company_name}
     `;
 
