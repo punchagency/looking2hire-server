@@ -30,8 +30,8 @@ export class JobPost {
   @prop({ required: true, ref: () => Employer })
   employerId: Ref<Employer>;
 
-  @prop({ required: true })
-  company_name: string;
+  // @prop({ required: true })
+  // company_name: string;
 
   @prop({ required: true })
   job_title: string;
@@ -53,6 +53,28 @@ export class JobPost {
 
   @prop({ required: true })
   closing_statement: string;
+
+  //
+  @prop({ required: true })
+  salary_min: number;
+
+  @prop({ required: true })
+  salary_max: number;
+
+  @prop({ required: true })
+  salary_currency: string; // e.g., "USD"
+
+  @prop({ required: true, enum: ["Hourly", "Weekly", "Monthly", "Annually"] })
+  salary_period: string;
+
+  @prop({ required: true, enum: ["Remote", "Hybrid", "Onsite"] })
+  work_type: string;
+
+  @prop({ required: true, enum: ["Full Time", "Part Time", "Contract"] })
+  employment_type: string;
+
+  @prop({ required: true, enum: ["Junior", "Mid", "Senior"] })
+  seniority: string;
 }
 
 export class Application {

@@ -45,7 +45,6 @@ export class JobService {
       return await JobPostModel.create({
         ...data,
         employerId,
-        company_name: employer.company_name,
         ...jobDescription,
       });
     } catch (error) {
@@ -113,7 +112,14 @@ export class JobService {
         throw new Error("Invalid mongodb ID");
       }
 
-      const job = await JobPostModel.findOne({ _id: jobId, employerId });
+      const job = await JobPostModel.findOne({
+        _id: jobId,
+        employerId,
+      }).populate({
+        path: "employerId",
+        select:
+          "company_name full_name email phone address company_logo heading body", // Add any other employer fields you need
+      });
       if (!job) throw new Error("Job not found");
 
       // Get application statistics and applications with applicant details
@@ -127,8 +133,11 @@ export class JobService {
             .lean(),
         ]);
 
+      const jobObject = job.toObject();
       return {
-        ...job.toObject(),
+        ...jobObject,
+        employer: jobObject.employerId, // Rename employerId to employer for better clarity
+        employerId: undefined, // Remove the original employerId field
         applicationStats: {
           total: totalApplications,
           rejected: rejectedCount,

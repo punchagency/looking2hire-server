@@ -100,7 +100,9 @@ export class AuthController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const refreshToken = req.cookies.refreshToken;
+      // const refreshToken = req.cookies.refreshToken;
+      // if (!refreshToken) throw new Error("Invalid or expired refresh token");
+      const refreshToken = req.body.refreshToken;
       if (!refreshToken) throw new Error("Invalid or expired refresh token");
 
       const newAccessToken = await this.authService.refreshToken(refreshToken);
