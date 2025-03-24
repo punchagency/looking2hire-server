@@ -626,4 +626,31 @@ export class AuthService {
       expiresIn: 900,
     });
   }
+
+  async getUserDetails(userId: string, userType: "employer" | "applicant") {
+    try {
+      let user;
+      if (userType === "employer") {
+        user = await EmployerModel.findById(userId).select("-password");
+      } else {
+        user = await ApplicantModel.findById(userId).select("-password");
+      }
+
+      if (!user) {
+        throw new Error(`${userType} not found`);
+      }
+
+      return user;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(
+          `Failed to fetch ${userType} details: ${error.message}`
+        );
+      } else {
+        throw new Error(
+          `Failed to fetch ${userType} details: An unknown error occurred`
+        );
+      }
+    }
+  }
 }

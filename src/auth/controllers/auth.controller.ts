@@ -5,7 +5,10 @@ import { AuthService } from "../services/auth.service";
 import { env } from "../../config/env";
 import { ApiError } from "../../common/middlewares/error.middleware";
 import { validateOrReject } from "class-validator";
-import { MulterRequest } from "../../common/middlewares/auth.middleware";
+import {
+  AuthRequest,
+  MulterRequest,
+} from "../../common/middlewares/auth.middleware";
 import { uploadToS3 } from "../../common/utils/s3.util";
 import {
   ApplicantSigninDto,
@@ -345,6 +348,30 @@ export class AuthController {
       res.status(200).json(applicants);
     } catch (error: any) {
       next(new ApiError(error, 500));
+    }
+  }
+
+  async getUserDetails(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { userType } = req.query;
+
+      if (!userType || (userType !== "employer" && userType !== "applicant")) {
+        throw new Error(
+          'Invalid user type. Must be either "employer" or "applicant"'
+        );
+      }
+
+      const user = await this.authService.getUserDetails(
+        req.user.id,
+        userType as "employer" | "applicant"
+      );
+      res.status(200).json({ success: true, user });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
     }
   }
 }

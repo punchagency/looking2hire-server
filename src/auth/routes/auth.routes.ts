@@ -64,4 +64,10 @@ authRouter.post("/signout", authController.signout.bind(authController));
 //
 authRouter.get("/", authController.getAllApplicants.bind(authController));
 
+authRouter.get(
+  "/user-details",
+  authenticate,
+  authController.getUserDetails.bind(authController)
+);
+
 export default authRouter;
