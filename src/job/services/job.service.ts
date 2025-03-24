@@ -129,7 +129,7 @@ export class JobService {
           ApplicationModel.countDocuments({ jobId, status: "Rejected" }),
           ApplicationModel.countDocuments({ jobId, status: "Hired" }),
           ApplicationModel.find({ jobId })
-            .populate("applicantId", "name email heading profile_pic") // Only select necessary fields
+            .populate("applicantId") // Get all applicant fields
             .lean(),
         ]);
 
