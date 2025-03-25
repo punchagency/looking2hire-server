@@ -1,14 +1,18 @@
-import { S3Client } from "@aws-sdk/client-s3";
-import { Upload } from "@aws-sdk/lib-storage";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { env } from "../../config/env";
 import { v4 as uuidv4 } from "uuid";
 
 const s3Client = new S3Client({
+  region: env.aws.region,
   credentials: {
     accessKeyId: env.aws.accessKeyId,
     secretAccessKey: env.aws.secretAccessKey,
   },
-  region: env.aws.region,
+  maxAttempts: 3,
+  requestHandler: {
+    connectionTimeout: 5000, // 5 seconds
+    socketTimeout: 30000, // 30 seconds
+  },
 });
 
 export async function uploadToS3(
@@ -16,24 +20,24 @@ export async function uploadToS3(
   folder: string
 ): Promise<string> {
   try {
-    const fileKey = `${folder}/${uuidv4()}-${file.originalname}`;
+    const fileExtension = file.originalname.split(".").pop();
+    const key = `${folder}/${uuidv4()}.${fileExtension}`;
 
-    const upload = new Upload({
-      client: s3Client,
-      params: {
-        Bucket: env.aws.bucketName,
-        Key: fileKey,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-      },
+    const command = new PutObjectCommand({
+      Bucket: env.aws.bucketName,
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+      ACL: "public-read",
     });
 
-    await upload.done();
-    return `https://${env.aws.bucketName}.s3.${env.aws.region}.amazonaws.com/${fileKey}`;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to upload to S3: ${error.message}`);
-    }
-    throw new Error("Failed to upload to S3: An unknown error occurred");
+    await s3Client.send(command);
+
+    return `https://${env.aws.bucketName}.s3.${env.aws.region}.amazonaws.com/${key}`;
+  } catch (error: any) {
+    console.error("S3 Upload Error:", error);
+    throw new Error(
+      `Failed to upload file to S3: ${error.message || "Unknown error"}`
+    );
   }
 }

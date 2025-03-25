@@ -114,9 +114,19 @@ export class JobController {
       // Handle company logo upload if file exists
       if (req.file) {
         try {
-          const logoUrl = await uploadToS3(req.file, "company-logos");
+          // Set a timeout for the upload
+          const uploadPromise = uploadToS3(req.file, "company-logos");
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error("Upload timeout")), 30000); // 30 second timeout
+          });
+
+          const logoUrl = await Promise.race([uploadPromise, timeoutPromise]);
           data.company_logo = logoUrl;
         } catch (uploadError: any) {
+          // Clean up the file buffer if upload fails
+          if (req.file) {
+            req.file = undefined;
+          }
           throw new Error(
             `Failed to upload company logo: ${uploadError.message}`
           );
@@ -134,7 +144,7 @@ export class JobController {
     } catch (error: any) {
       // If there was a file upload error, we should clean up any uploaded files
       if (req.file) {
-        // You might want to add cleanup logic here if needed
+        req.file = undefined;
       }
       next(new ApiError(error, 400));
     }
