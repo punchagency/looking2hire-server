@@ -183,10 +183,6 @@ export class UpdateEmployerProfileDto {
   full_name?: string;
 
   @IsOptional()
-  @IsEmail({}, { message: "Invalid email format" })
-  email?: string;
-
-  @IsOptional()
   @IsPhoneNumber(undefined, { message: "Invalid phone number format" })
   phone?: string;
 
