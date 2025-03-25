@@ -94,9 +94,31 @@ export class JobService {
     }
   }
 
-  async getAllJobs(employerId: string) {
+  async getAllJobs(employerId: string, page: number = 1) {
     try {
-      return await JobPostModel.find({ employerId });
+      const limit = 10; // Fixed limit of 10 items per page
+      const skip = (page - 1) * limit;
+
+      // Get total count for pagination
+      const total = await JobPostModel.countDocuments({ employerId });
+
+      // Get paginated jobs
+      const jobs = await JobPostModel.find({ employerId })
+        .sort({ createdAt: -1 }) // Sort by newest first
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      return {
+        jobs,
+        pagination: {
+          total,
+          page,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: skip + jobs.length < total,
+          hasPrevPage: page > 1,
+        },
+      };
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Fetching jobs failed: ${error.message}`);

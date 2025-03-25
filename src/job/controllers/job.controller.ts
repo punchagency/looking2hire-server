@@ -64,8 +64,9 @@ export class JobController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const jobs = await this.jobService.getAllJobs(req.user.id);
-      res.status(200).json({ success: true, jobs });
+      const page = parseInt(req.query.page as string) || 1;
+      const result = await this.jobService.getAllJobs(req.user.id, page);
+      res.status(200).json({ success: true, ...result });
     } catch (error: any) {
       next(new ApiError(error, 500));
     }
