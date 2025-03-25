@@ -113,8 +113,14 @@ export class JobController {
 
       // Handle company logo upload if file exists
       if (req.file) {
-        const logoUrl = await uploadToS3(req.file, "company-logos");
-        data.company_logo = logoUrl;
+        try {
+          const logoUrl = await uploadToS3(req.file, "company-logos");
+          data.company_logo = logoUrl;
+        } catch (uploadError: any) {
+          throw new Error(
+            `Failed to upload company logo: ${uploadError.message}`
+          );
+        }
       }
 
       const updatedApplicant = await this.jobService.addEmploymentHistory(
@@ -126,6 +132,10 @@ export class JobController {
         data: updatedApplicant,
       });
     } catch (error: any) {
+      // If there was a file upload error, we should clean up any uploaded files
+      if (req.file) {
+        // You might want to add cleanup logic here if needed
+      }
       next(new ApiError(error, 400));
     }
   }

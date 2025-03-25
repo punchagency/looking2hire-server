@@ -198,12 +198,38 @@ export class JobService {
 
   async addEmploymentHistory(applicantId: string, data: EmploymentHistoryDto) {
     try {
+      // Validate applicant exists first
+      const applicant = await ApplicantModel.findById(applicantId);
+      if (!applicant) {
+        throw new Error("Applicant not found");
+      }
+
+      // Create employment history object with only valid fields
+      const employmentHistory = {
+        job_title: data.job_title,
+        company_name: data.company_name,
+        employment_type: data.employment_type,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        description: data.description,
+        company_logo: data.company_logo, // This will be undefined if no file was uploaded
+      };
+
+      // Update applicant with the new employment history
       const updatedApplicant = await ApplicantModel.findByIdAndUpdate(
         applicantId,
-        { $push: { employment_history: data } },
-        { new: true, runValidators: true }
+        { $push: { employment_history: employmentHistory } },
+        {
+          new: true,
+          runValidators: true,
+          select: "-password", // Exclude password from response
+        }
       );
-      if (!updatedApplicant) throw new Error("Applicant not found.");
+
+      if (!updatedApplicant) {
+        throw new Error("Failed to update applicant");
+      }
+
       return updatedApplicant;
     } catch (error) {
       if (error instanceof Error) {
