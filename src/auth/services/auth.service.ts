@@ -623,7 +623,7 @@ export class AuthService {
 
   private generateAccessToken(user: any): string {
     return jwt.sign({ id: user._id, email: user.email }, env.jwtSecret, {
-      expiresIn: 6,
+      expiresIn: 604800,
     });
   }
 
