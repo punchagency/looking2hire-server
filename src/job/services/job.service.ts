@@ -310,9 +310,9 @@ export class JobService {
     }
   }
 
-  async getJobsByDistance(data: DistanceFilterDto) {
+  async getJobsByDistance(data: DistanceFilterDto, applicantId?: string) {
     try {
-      return await JobPostModel.find({
+      const jobs = await JobPostModel.find({
         location: {
           $geoWithin: {
             $centerSphere: [
@@ -321,7 +321,23 @@ export class JobService {
             ],
           },
         },
-      });
+      }).lean();
+
+      // Add isSaved flag if applicantId is provided
+      if (applicantId) {
+        const jobsWithSavedStatus = await Promise.all(
+          jobs.map(async (job) => {
+            const isSaved = await this.isJobSaved(
+              applicantId,
+              job._id.toString()
+            );
+            return { ...job, isSaved };
+          })
+        );
+        return jobsWithSavedStatus;
+      }
+
+      return jobs;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Fetching jobs by distance failed: ${error.message}`);
