@@ -118,4 +118,16 @@ jobRouter.get(
   jobController.getRecommendedJobs.bind(jobController)
 );
 
+jobRouter.get(
+  "/applicant/job-detail/:jobId",
+  authenticate,
+  jobController.getOneJob.bind(jobController)
+);
+
+jobRouter.get(
+  "/applicant/applied",
+  authenticate,
+  jobController.getAppliedJobs.bind(jobController)
+);
+
 export default jobRouter;

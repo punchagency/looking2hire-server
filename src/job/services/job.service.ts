@@ -356,9 +356,20 @@ export class JobService {
       const jobs = await JobPostModel.find({
         job_title: { $regex: data.title, $options: "i" },
       }).lean();
-      console.log({ jobs });
+
+      // Add isSaved flag to each job
+      const jobsWithSavedStatus = await Promise.all(
+        jobs.map(async (job) => {
+          const isSaved = await this.isJobSaved(
+            applicantId,
+            job._id.toString()
+          );
+          return { ...job, isSaved };
+        })
+      );
+
       await this.addSearchHistory(applicantId, data.title);
-      return jobs;
+      return jobsWithSavedStatus;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Job search failed: ${error.message}`);
@@ -388,17 +399,41 @@ export class JobService {
     }
   }
 
-  async getPopularJobs() {
+  async getPopularJobs(applicantId?: string) {
     try {
       const popularJobs = await PopularJobsModel.find()
         .populate({
           path: "jobId",
           select:
-            "job_title company_name job_address location qualifications description responsibilities requirements", // Add any other job fields you need
+            "job_title company_name job_address location qualifications description responsibilities requirements",
         })
         .sort({ applicationCount: -1 })
         .limit(10)
         .lean();
+
+      // Add isSaved flag if applicantId is provided
+      if (applicantId) {
+        const jobsWithSavedStatus = await Promise.all(
+          popularJobs.map(async (job) => {
+            const isSaved = await this.isJobSaved(
+              applicantId,
+              job.jobId._id.toString()
+            );
+            return {
+              popularityStats: {
+                _id: job._id,
+                applicationCount: job.applicationCount,
+                lastUpdated: job.lastUpdated,
+              },
+              jobDetails: {
+                ...job.jobId,
+                isSaved,
+              },
+            };
+          })
+        );
+        return jobsWithSavedStatus;
+      }
 
       // Transform the response to make it cleaner
       return popularJobs.map((job) => ({
@@ -407,7 +442,7 @@ export class JobService {
           applicationCount: job.applicationCount,
           lastUpdated: job.lastUpdated,
         },
-        jobDetails: job.jobId, // All the job details
+        jobDetails: job.jobId,
       }));
     } catch (error) {
       if (error instanceof Error) {
@@ -462,9 +497,28 @@ export class JobService {
     }
   }
 
-  async getRecentJobs() {
+  async getRecentJobs(applicantId?: string) {
     try {
-      return await JobPostModel.find().sort({ createdAt: -1 }).limit(10);
+      const jobs = await JobPostModel.find()
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean();
+
+      // Add isSaved flag if applicantId is provided
+      if (applicantId) {
+        const jobsWithSavedStatus = await Promise.all(
+          jobs.map(async (job) => {
+            const isSaved = await this.isJobSaved(
+              applicantId,
+              job._id.toString()
+            );
+            return { ...job, isSaved };
+          })
+        );
+        return jobsWithSavedStatus;
+      }
+
+      return jobs;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Fetching recent jobs failed: ${error.message}`);
@@ -568,10 +622,30 @@ export class JobService {
 
   async getViewedJobs(applicantId: string) {
     try {
-      return await ViewedJobModel.find({ applicantId })
+      const viewedJobs = await ViewedJobModel.find({ applicantId })
         .populate("jobId")
         .sort({ viewedAt: -1 })
         .lean();
+
+      // Add isSaved flag to each job
+      const jobsWithSavedStatus = await Promise.all(
+        viewedJobs.map(async (job) => {
+          const isSaved = await this.isJobSaved(
+            applicantId,
+            job.jobId._id.toString()
+          );
+          return {
+            ...job,
+            job: {
+              ...job.jobId,
+              isSaved,
+            },
+            jobId: undefined,
+          };
+        })
+      );
+
+      return jobsWithSavedStatus;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to get viewed jobs: ${error.message}`);
@@ -620,8 +694,18 @@ export class JobService {
         return bMatches - aMatches;
       });
 
-      // Limit to 10 recommendations
-      return recommendedJobs.slice(0, 10);
+      // Limit to 10 recommendations and add isSaved flag
+      const jobsWithSavedStatus = await Promise.all(
+        recommendedJobs.slice(0, 10).map(async (job) => {
+          const isSaved = await this.isJobSaved(
+            applicantId,
+            job._id.toString()
+          );
+          return { ...job, isSaved };
+        })
+      );
+
+      return jobsWithSavedStatus;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to get recommended jobs: ${error.message}`);
@@ -631,5 +715,106 @@ export class JobService {
         );
       }
     }
+  }
+
+  async getOneJob(jobId: string, applicantId?: string) {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(jobId)) {
+        throw new Error("Invalid mongodb ID");
+      }
+
+      const job = await JobPostModel.findById(jobId)
+        .populate({
+          path: "employerId",
+          select:
+            "company_name full_name email phone address company_logo heading body",
+        })
+        .lean();
+
+      if (!job) {
+        throw new Error("Job not found");
+      }
+
+      // Check if job is saved if applicantId is provided
+      let isSaved = false;
+      if (applicantId) {
+        isSaved = await this.isJobSaved(applicantId, jobId);
+      }
+
+      // Transform the response to make it cleaner
+      const jobObject = {
+        ...job,
+        employer: job.employerId,
+        employerId: undefined, // Remove the original employerId field
+        isSaved,
+      };
+
+      return jobObject;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Fetching job failed: ${error.message}`);
+      } else {
+        throw new Error("Fetching job failed: An unknown error occurred");
+      }
+    }
+  }
+
+  async getAppliedJobs(applicantId: string, page: number = 1) {
+    try {
+      const limit = 10; // Fixed limit of 10 items per page
+      const skip = (page - 1) * limit;
+
+      // Get total count for pagination
+      const total = await ApplicationModel.countDocuments({ applicantId });
+
+      // Get paginated applications with job details
+      const applications = await ApplicationModel.find({ applicantId })
+        .populate({
+          path: "jobId",
+          select:
+            "job_title company_name job_address location qualifications description responsibilities requirements salary_min salary_max salary_currency salary_period work_type employment_type seniority",
+        })
+        .sort({ createdAt: -1 }) // Sort by newest first
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      // Transform the response to make it cleaner
+      const transformedApplications = applications.map((app) => ({
+        ...app,
+        job: app.jobId,
+        jobId: undefined, // Remove the original jobId field
+        applicationId: app._id,
+        _id: undefined, // Remove the original _id field
+      }));
+
+      return {
+        applications: transformedApplications,
+        pagination: {
+          total,
+          page,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: skip + applications.length < total,
+          hasPrevPage: page > 1,
+        },
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Fetching applied jobs failed: ${error.message}`);
+      } else {
+        throw new Error(
+          "Fetching applied jobs failed: An unknown error occurred"
+        );
+      }
+    }
+  }
+
+  // Helper function to check if a job is saved
+  private async isJobSaved(
+    applicantId: string,
+    jobId: string
+  ): Promise<boolean> {
+    const savedJob = await SavedJobModel.findOne({ applicantId, jobId });
+    return !!savedJob;
   }
 }

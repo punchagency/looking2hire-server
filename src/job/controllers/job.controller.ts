@@ -236,7 +236,7 @@ export class JobController {
 
   async getPopularJobs(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const jobs = await this.jobService.getPopularJobs();
+      const jobs = await this.jobService.getPopularJobs(req.user.id);
       res.json({ success: true, jobs });
     } catch (error: any) {
       next(new ApiError(error, 500));
@@ -258,13 +258,9 @@ export class JobController {
     }
   }
 
-  async getRecentJobs(
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  async getRecentJobs(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const jobs = await this.jobService.getRecentJobs();
+      const jobs = await this.jobService.getRecentJobs(req.user.id);
       res.status(200).json({ success: true, jobs });
     } catch (error: any) {
       next(new ApiError(error, 400));
@@ -336,6 +332,26 @@ export class JobController {
         req.user.id
       );
       res.status(200).json({ success: true, recommendedJobs });
+    } catch (error: any) {
+      next(new ApiError(error, 500));
+    }
+  }
+
+  async getOneJob(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { jobId } = req.params;
+      const job = await this.jobService.getOneJob(jobId, req.user.id);
+      res.status(200).json({ success: true, job });
+    } catch (error: any) {
+      next(new ApiError(error, 404));
+    }
+  }
+
+  async getAppliedJobs(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const result = await this.jobService.getAppliedJobs(req.user.id, page);
+      res.status(200).json({ success: true, ...result });
     } catch (error: any) {
       next(new ApiError(error, 500));
     }
