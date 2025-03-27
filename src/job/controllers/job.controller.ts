@@ -214,9 +214,11 @@ export class JobController {
 
   async searchJobs(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      let data = { title: req.query.title as string };
+      let data = {
+        title: req.query.title as string,
+        isFinalSearch: req.query.isFinalSearch === "true",
+      };
       data = Object.assign(new SearchDto(), data);
-      console.log("data", data);
       await validateOrReject(data);
       const jobs = await this.jobService.searchJobs(req.user.id, data);
       res.json({ success: true, jobs });
@@ -267,24 +269,17 @@ export class JobController {
     }
   }
 
-  async saveJob(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const data = Object.assign(new SaveJobDto(), req.body);
-      await validateOrReject(data);
-      const savedJob = await this.jobService.saveJob(req.user.id, data);
-      res.status(201).json({ success: true, savedJob });
-    } catch (error: any) {
-      next(new ApiError(error, 400));
-    }
-  }
-
-  async unsaveJob(req: AuthRequest, res: Response, next: NextFunction) {
+  async toggleSaveJob(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { jobId } = req.params;
-      await this.jobService.unsaveJob(req.user.id, jobId);
-      res
-        .status(200)
-        .json({ success: true, message: "Job unsaved successfully" });
+      const result = await this.jobService.toggleSaveJob(req.user.id, jobId);
+      res.status(200).json({
+        success: true,
+        message: result.isSaved
+          ? "Job saved successfully"
+          : "Job unsaved successfully",
+        isSaved: result.isSaved,
+      });
     } catch (error: any) {
       next(new ApiError(error, 400));
     }

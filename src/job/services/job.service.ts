@@ -368,7 +368,11 @@ export class JobService {
         })
       );
 
-      await this.addSearchHistory(applicantId, data.title);
+      // Only save to search history if it's a final search
+      if (data.isFinalSearch) {
+        await this.addSearchHistory(applicantId, data.title);
+      }
+
       return jobsWithSavedStatus;
     } catch (error) {
       if (error instanceof Error) {
@@ -530,52 +534,40 @@ export class JobService {
     }
   }
 
-  async saveJob(applicantId: string, data: SaveJobDto) {
+  async toggleSaveJob(applicantId: string, jobId: string) {
     try {
       // Check if job exists
-      const job = await JobPostModel.findById(data.jobId);
+      const job = await JobPostModel.findById(jobId);
       if (!job) {
         throw new Error("Job not found");
       }
 
       // Check if already saved
       const existingSave = await SavedJobModel.findOne({
-        jobId: data.jobId,
+        jobId,
         applicantId,
       });
 
       if (existingSave) {
-        throw new Error("Job already saved");
+        // If saved, unsave it
+        await SavedJobModel.findOneAndDelete({
+          jobId,
+          applicantId,
+        });
+        return { isSaved: false };
+      } else {
+        // If not saved, save it
+        await SavedJobModel.create({
+          jobId,
+          applicantId,
+        });
+        return { isSaved: true };
       }
-
-      return await SavedJobModel.create({
-        jobId: data.jobId,
-        applicantId,
-      });
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to save job: ${error.message}`);
+        throw new Error(`Failed to toggle job save: ${error.message}`);
       } else {
-        throw new Error("Failed to save job: An unknown error occurred");
-      }
-    }
-  }
-
-  async unsaveJob(applicantId: string, jobId: string) {
-    try {
-      const result = await SavedJobModel.findOneAndDelete({
-        jobId,
-        applicantId,
-      });
-      if (!result) {
-        throw new Error("Saved job not found");
-      }
-      return result;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(`Failed to unsave job: ${error.message}`);
-      } else {
-        throw new Error("Failed to unsave job: An unknown error occurred");
+        throw new Error("Failed to toggle job save: An unknown error occurred");
       }
     }
   }

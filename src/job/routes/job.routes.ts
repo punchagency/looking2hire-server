@@ -83,15 +83,9 @@ jobRouter.get(
 
 // Save and View Job Routes
 jobRouter.post(
-  "/applicant/save",
-  authenticate,
-  jobController.saveJob.bind(jobController)
-);
-
-jobRouter.delete(
   "/applicant/save/:jobId",
   authenticate,
-  jobController.unsaveJob.bind(jobController)
+  jobController.toggleSaveJob.bind(jobController)
 );
 
 jobRouter.get(

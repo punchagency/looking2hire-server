@@ -4,6 +4,8 @@ import { IsArray } from "class-validator";
 import { IsOptional } from "class-validator";
 import { IsDate } from "class-validator";
 import { IsEnum } from "class-validator";
+import { IsNotEmpty } from "class-validator";
+import { IsBoolean } from "class-validator";
 
 export class JobPostDto {
   @IsString()
@@ -124,7 +126,12 @@ export class ApplicationDto {
 
 export class SearchDto {
   @IsString()
+  @IsNotEmpty()
   title: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isFinalSearch?: boolean;
 }
 
 export class DistanceFilterDto {
