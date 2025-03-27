@@ -727,10 +727,14 @@ export class JobService {
         throw new Error("Job not found");
       }
 
-      // Check if job is saved if applicantId is provided
+      // Check if job is saved and applied if applicantId is provided
       let isSaved = false;
+      let isApplied = false;
       if (applicantId) {
-        isSaved = await this.isJobSaved(applicantId, jobId);
+        [isSaved, isApplied] = await Promise.all([
+          this.isJobSaved(applicantId, jobId),
+          this.isJobApplied(applicantId, jobId),
+        ]);
       }
 
       // Transform the response to make it cleaner
@@ -739,6 +743,7 @@ export class JobService {
         employer: job.employerId,
         employerId: undefined, // Remove the original employerId field
         isSaved,
+        isApplied,
       };
 
       return jobObject;
@@ -808,5 +813,14 @@ export class JobService {
   ): Promise<boolean> {
     const savedJob = await SavedJobModel.findOne({ applicantId, jobId });
     return !!savedJob;
+  }
+
+  // Helper function to check if a job is applied
+  private async isJobApplied(
+    applicantId: string,
+    jobId: string
+  ): Promise<boolean> {
+    const application = await ApplicationModel.findOne({ applicantId, jobId });
+    return !!application;
   }
 }
