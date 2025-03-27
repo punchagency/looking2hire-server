@@ -73,16 +73,13 @@ export class JobService {
         throw new Error("Employer not found");
       }
 
-      // Generate new job description
-      const jobDescription = await generateJobDescription(
-        data.job_title || currentJob.job_title,
-        data.qualifications || currentJob.qualifications.join(", "),
-        employer.company_name
-      );
-
+      // Update job with new data
       return await JobPostModel.findOneAndUpdate(
         { _id: jobId, employerId },
-        { ...data, ...jobDescription },
+        {
+          ...data,
+          company_name: employer.company_name, // Ensure company name is always included
+        },
         { new: true, runValidators: true }
       );
     } catch (error) {

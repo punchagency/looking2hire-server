@@ -64,9 +64,22 @@ export class UpdateJobPostDto {
 
   @IsOptional()
   @IsString()
-  qualifications?: string;
+  summary?: string;
 
-  //
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  key_responsibilities?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  qualifications?: string[];
+
+  @IsOptional()
+  @IsString()
+  closing_statement?: string;
+
   @IsOptional()
   @IsNumber()
   salary_min?: number;
