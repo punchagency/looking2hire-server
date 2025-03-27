@@ -197,18 +197,14 @@ export class JobController {
     }
   }
 
-  async getJobsByDistance(
-    req: AuthRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  async getJobsByDistance(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const data = Object.assign(new DistanceFilterDto(), req.body);
       await validateOrReject(data);
-      const jobs = await this.jobService.getJobsByDistance(data);
+      const jobs = await this.jobService.getJobsByDistance(data, req.user?.id);
       res.json({ success: true, jobs });
     } catch (error: any) {
-      next(new ApiError(error, 500));
+      next(new ApiError(error, 400));
     }
   }
 

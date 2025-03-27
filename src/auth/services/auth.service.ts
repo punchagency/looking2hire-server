@@ -10,7 +10,7 @@ import {
 import { randomBytes } from "crypto";
 import axios from "axios";
 import mongoose from "mongoose";
-import { sendOTPEmail } from "../../common/utils/nodemailer.util";
+import { sendEmail } from "../../common/utils/sendGridEmail";
 import { generateOTP } from "../../common/utils/otp.util";
 import {
   ApplicantDto,
@@ -322,7 +322,11 @@ export class AuthService {
         );
       }
 
-      if (!existingEmployer) await EmployerModel.create(data);
+      console.log("employerSignup", { existingEmployer });
+      if (!existingEmployer) {
+        const emp = await EmployerModel.create(data);
+        console.log({ emp });
+      }
 
       return await this.sendOTP({
         email: data.email,
@@ -476,9 +480,35 @@ export class AuthService {
     }
   }
 
+  private async sendOTPEmail(email: string, otp: string) {
+    try {
+      const subject = "Your OTP for Looking2Hire";
+      const text = `Your OTP is: ${otp}. This code will expire in 5 minutes.`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Your OTP for Looking2Hire</h2>
+          <p>Your OTP is: <strong>${otp}</strong></p>
+          <p>This code will expire in 5 minutes.</p>
+          <p>If you didn't request this code, please ignore this email.</p>
+        </div>
+      `;
+
+      await sendEmail({
+        to: email,
+        subject,
+        text,
+        html,
+      });
+    } catch (error) {
+      console.error("Failed to send OTP email:", error);
+      throw new Error("Failed to send OTP email. Please try again later.");
+    }
+  }
+
   async sendOTP(data: SendOTPDto): Promise<string> {
     if (data.userType === "employer") {
       const employer = await EmployerModel.findOne({ email: data.email });
+      console.log({ email: data.email, employer });
       if (data.context === "signup") {
         if (!employer) throw new Error("User does not exist");
         if (employer.isVerified) throw new Error("User is already verified");
@@ -506,7 +536,7 @@ export class AuthService {
       email: data.email,
       otpCode,
     });
-    await sendOTPEmail(data.email, otpCode);
+    await this.sendOTPEmail(data.email, otpCode);
     return `OTP resent for ${data.context} successfully`;
   }
 
@@ -649,6 +679,28 @@ export class AuthService {
       } else {
         throw new Error(
           `Failed to fetch ${userType} details: An unknown error occurred`
+        );
+      }
+    }
+  }
+
+  async getEmployerById(employerId: string) {
+    try {
+      const employer = await EmployerModel.findById(employerId).select(
+        "-password"
+      );
+
+      if (!employer) {
+        throw new Error("Employer not found");
+      }
+
+      return employer;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to fetch employer details: ${error.message}`);
+      } else {
+        throw new Error(
+          "Failed to fetch employer details: An unknown error occurred"
         );
       }
     }

@@ -34,4 +34,6 @@ export const env = {
     apiKey: process.env.AFFINDA_API_KEY!,
     workspaceId: process.env.AFFINDA_WORKSPACE_ID!,
   },
+
+  sendGridKey: process.env.SENDGRID_API_KEY!,
 };
