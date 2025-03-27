@@ -70,4 +70,10 @@ authRouter.get(
   authController.getUserDetails.bind(authController)
 );
 
+authRouter.get(
+  "/employer/get/:id",
+  authenticate,
+  authController.getEmployerById.bind(authController)
+);
+
 export default authRouter;

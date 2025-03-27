@@ -349,21 +349,32 @@ export class JobService {
     }
   }
 
-  async addSearchHistory(applicantId: string, query: string) {
+  private async addSearchHistory(applicantId: string, searchTerm: string) {
     try {
-      await SearchHistoryModel.findOneAndUpdate(
-        { applicantId, query }, // Use "applicantId" instead of "applicant"
-        { $set: { createdAt: new Date() } },
-        { upsert: true, new: true } // Ensure the updated document is returned
-      );
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(`Failed to update search history: ${error.message}`);
+      // Convert search term to lowercase for case-insensitive comparison
+      const normalizedSearchTerm = searchTerm.toLowerCase();
+
+      // Check if search term already exists (case-insensitive)
+      const existingSearch = await SearchHistoryModel.findOne({
+        applicantId,
+        query: { $regex: new RegExp(`^${normalizedSearchTerm}$`, "i") },
+      });
+
+      if (existingSearch) {
+        // Update the timestamp if search term exists
+        await SearchHistoryModel.findByIdAndUpdate(existingSearch._id, {
+          updatedAt: new Date(),
+        });
       } else {
-        throw new Error(
-          "Failed to update search history: An unknown error occurred"
-        );
+        // Create new search history if term doesn't exist
+        await SearchHistoryModel.create({
+          applicantId,
+          query: searchTerm, // Store original case
+          updatedAt: new Date(),
+        });
       }
+    } catch (error) {
+      console.error("Failed to add search history:", error);
     }
   }
 
@@ -404,7 +415,7 @@ export class JobService {
       const recentSearches = await SearchHistoryModel.find({
         applicantId,
       })
-        .sort({ createdAt: -1 })
+        .sort({ updatedAt: -1 })
         .limit(10)
         .lean();
       return recentSearches;
@@ -425,7 +436,7 @@ export class JobService {
         .populate({
           path: "jobId",
           select:
-            "job_title company_name job_address location qualifications description responsibilities requirements",
+            "job_title company_name job_address location qualifications description responsibilities requirements salary_min salary_max salary_currency salary_period work_type employment_type seniority",
         })
         .sort({ applicationCount: -1 })
         .limit(10)

@@ -374,4 +374,18 @@ export class AuthController {
       next(new ApiError(error, 400));
     }
   }
+
+  async getEmployerById(
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { id } = req.params;
+      const employer = await this.authService.getEmployerById(id);
+      res.status(200).json({ success: true, employer });
+    } catch (error: any) {
+      next(new ApiError(error, 400));
+    }
+  }
 }

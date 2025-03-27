@@ -683,4 +683,26 @@ export class AuthService {
       }
     }
   }
+
+  async getEmployerById(employerId: string) {
+    try {
+      const employer = await EmployerModel.findById(employerId).select(
+        "-password"
+      );
+
+      if (!employer) {
+        throw new Error("Employer not found");
+      }
+
+      return employer;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to fetch employer details: ${error.message}`);
+      } else {
+        throw new Error(
+          "Failed to fetch employer details: An unknown error occurred"
+        );
+      }
+    }
+  }
 }
