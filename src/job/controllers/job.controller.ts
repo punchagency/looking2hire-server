@@ -1,5 +1,5 @@
 // job.controller.ts
-import { Response, NextFunction } from "express";
+import { Response, NextFunction, Request } from "express";
 import { Service } from "typedi";
 import { JobService } from "../services/job.service";
 import { validateOrReject } from "class-validator";
@@ -342,6 +342,20 @@ export class JobController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const result = await this.jobService.getAppliedJobs(req.user.id, page);
+      res.status(200).json({ success: true, ...result });
+    } catch (error: any) {
+      next(new ApiError(error, 500));
+    }
+  }
+
+  async getJobsByEmployerId(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { employerId } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const result = await this.jobService.getJobsByEmployerId(
+        employerId,
+        page
+      );
       res.status(200).json({ success: true, ...result });
     } catch (error: any) {
       next(new ApiError(error, 500));

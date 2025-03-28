@@ -312,32 +312,61 @@ export class JobService {
 
   async getJobsByDistance(data: DistanceFilterDto, applicantId?: string) {
     try {
-      const jobs = await JobPostModel.find({
-        location: {
-          $geoWithin: {
-            $centerSphere: [
-              [data.longitude, data.latitude],
-              data.maxDistance / 6378137,
-            ],
+      const jobs = await JobPostModel.aggregate([
+        {
+          $geoNear: {
+            near: {
+              type: "Point",
+              coordinates: [data.longitude, data.latitude],
+            },
+            distanceField: "distance", // This will be in meters
+            maxDistance: data.maxDistance,
+            spherical: true,
+            query: {}, // Add any additional query conditions here if needed
           },
         },
-      }).lean();
+        {
+          $lookup: {
+            from: "employers",
+            localField: "employerId",
+            foreignField: "_id",
+            as: "employerId",
+          },
+        },
+        {
+          $unwind: "$employerId",
+        },
+      ]);
 
       // Add isSaved flag if applicantId is provided
       if (applicantId) {
         const jobsWithSavedStatus = await Promise.all(
-          jobs.map(async (job) => {
+          jobs.map(async (job: any) => {
             const isSaved = await this.isJobSaved(
               applicantId,
               job._id.toString()
             );
-            return { ...job, isSaved };
+            return {
+              ...job,
+              isSaved,
+              company_name: job.employerId?.company_name,
+              company_logo: job.employerId?.company_logo,
+              distance: Math.round(job.distance), // Round the distance to nearest meter
+              employerId: undefined, // Remove the original employerId field
+            };
           })
         );
         return jobsWithSavedStatus;
       }
 
-      return jobs;
+      // Transform response to include employer details and distance
+      return jobs.map((job: any) => ({
+        ...job,
+        company_name: job.employerId?.company_name,
+        company_logo: job.employerId?.company_logo,
+        distance: Math.round(job.distance), // Round the distance to nearest meter
+        employerId: undefined, // Remove the original employerId field
+      }));
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Fetching jobs by distance failed: ${error.message}`);
@@ -828,6 +857,42 @@ export class JobService {
       } else {
         throw new Error(
           "Fetching applied jobs failed: An unknown error occurred"
+        );
+      }
+    }
+  }
+
+  async getJobsByEmployerId(employerId: string, page: number = 1) {
+    try {
+      const limit = 10; // Fixed limit of 10 items per page
+      const skip = (page - 1) * limit;
+
+      // Get total count for pagination
+      const total = await JobPostModel.countDocuments({ employerId });
+
+      // Get paginated jobs
+      const jobs = await JobPostModel.find({ employerId })
+        .sort({ createdAt: -1 }) // Sort by newest first
+        .skip(skip)
+        .limit(limit)
+        .lean();
+
+      return {
+        jobs,
+        pagination: {
+          total,
+          page,
+          totalPages: Math.ceil(total / limit),
+          hasNextPage: skip + jobs.length < total,
+          hasPrevPage: page > 1,
+        },
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Fetching employer jobs failed: ${error.message}`);
+      } else {
+        throw new Error(
+          "Fetching employer jobs failed: An unknown error occurred"
         );
       }
     }

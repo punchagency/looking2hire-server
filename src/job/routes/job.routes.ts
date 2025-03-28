@@ -124,4 +124,9 @@ jobRouter.get(
   jobController.getAppliedJobs.bind(jobController)
 );
 
+jobRouter.get(
+  "/employer/get/all/:employerId",
+  jobController.getJobsByEmployerId.bind(jobController)
+);
+
 export default jobRouter;
