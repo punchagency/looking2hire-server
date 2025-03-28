@@ -376,7 +376,7 @@ export class AuthController {
   }
 
   async getEmployerById(
-    req: AuthRequest,
+    req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {

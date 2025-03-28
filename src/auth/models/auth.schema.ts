@@ -11,7 +11,7 @@ export class EmploymentHistory {
   @prop({ required: true })
   company_name: string;
 
-  @prop({ required: true })
+  @prop({ required: true, enum: ["Remote", "Hybrid", "Onsite"] })
   employment_type: string;
 
   @prop({ required: true })

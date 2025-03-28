@@ -54,6 +54,7 @@ export class EmploymentHistoryDto {
   company_name: string;
 
   @IsString()
+  @IsEnum(["Remote", "Hybrid", "Onsite"], { message: "Invalid work type" })
   employment_type: string;
 
   @IsString()
