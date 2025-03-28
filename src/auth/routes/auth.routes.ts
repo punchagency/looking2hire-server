@@ -72,7 +72,6 @@ authRouter.get(
 
 authRouter.get(
   "/employer/get/:id",
-  authenticate,
   authController.getEmployerById.bind(authController)
 );
 
