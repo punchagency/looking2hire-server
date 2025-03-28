@@ -610,7 +610,7 @@ export class AuthService {
       });
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Job update failed: ${error.message}`);
+        throw new Error(`Employer profile update failed: ${error.message}`);
       } else {
         throw new Error(
           "Employer profile update failed: An unknown error occurred"
